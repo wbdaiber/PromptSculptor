@@ -144,9 +144,9 @@ export default function Home() {
               <span className="text-sm text-slate-500">© 2024 PromptCraft. All rights reserved.</span>
             </div>
             <div className="flex items-center space-x-6">
-              <a href="#" className="text-sm text-slate-500 hover:text-slate-700">Documentation</a>
-              <a href="#" className="text-sm text-slate-500 hover:text-slate-700">API</a>
-              <a href="#" className="text-sm text-slate-500 hover:text-slate-700">Support</a>
+              <a href="#" className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Documentation</a>
+              <a href="#" className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">API</a>
+              <a href="#" className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Support</a>
             </div>
           </div>
         </div>

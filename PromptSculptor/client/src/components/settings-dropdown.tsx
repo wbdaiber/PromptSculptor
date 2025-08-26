@@ -8,15 +8,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import ThemeToggle from "./theme-toggle";
-import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { UserProfile, ApiKeyManager } from "./settings";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function SettingsDropdown() {
-  const { theme } = useTheme();
   const { logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showApiKeys, setShowApiKeys] = useState(false);
@@ -52,16 +49,6 @@ export default function SettingsDropdown() {
           >
             <Key className="h-4 w-4 mr-2" />
             API Keys
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem className="flex items-center justify-between cursor-pointer">
-            <span>Theme</span>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-slate-500 dark:text-slate-400 capitalize">
-                {theme}
-              </span>
-              <ThemeToggle />
-            </div>
           </DropdownMenuItem>
           
           <DropdownMenuSeparator />

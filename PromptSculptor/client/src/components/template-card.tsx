@@ -28,9 +28,9 @@ export default function TemplateCard({ template, onSelect, isSelected }: Templat
         <div className={`w-8 h-8 ${iconColorClass} rounded-lg flex items-center justify-center text-sm`}>
           <i className={template.icon}></i>
         </div>
-        <span className="font-medium text-slate-900">{template.name}</span>
+        <span className="font-medium text-slate-900 dark:text-slate-100">{template.name}</span>
       </div>
-      <p className="text-sm text-slate-500">{template.description}</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">{template.description}</p>
     </Card>
   );
 }

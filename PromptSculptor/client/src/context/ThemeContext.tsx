@@ -29,13 +29,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
-  // Set initial dark theme on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const root = document.documentElement;
-      root.classList.add("dark");
-    }
-  }, []);
 
   const toggleTheme = () => {
     setTheme(prev => prev === "light" ? "dark" : "light");

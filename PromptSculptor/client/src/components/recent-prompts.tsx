@@ -92,7 +92,7 @@ export default function RecentPrompts() {
   return (
     <div className="mt-12">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-slate-900">Recent Prompts</h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Recent Prompts</h2>
         <Button variant="ghost" className="text-blue-600 hover:text-blue-700 font-medium">
           View All
         </Button>
@@ -131,7 +131,7 @@ export default function RecentPrompts() {
                       <div className={`w-6 h-6 ${templateInfo.color} rounded-md flex items-center justify-center text-xs`}>
                         <i className={templateInfo.icon}></i>
                       </div>
-                      <span className="text-sm font-medium text-slate-900 capitalize">
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100 capitalize">
                         {prompt.templateType} Prompt
                       </span>
                     </div>
@@ -139,11 +139,11 @@ export default function RecentPrompts() {
                       {formatTimeAgo(prompt.createdAt.toString())}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-600 mb-4 line-clamp-3">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
                     {prompt.title}
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">{prompt.wordCount} words</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{prompt.wordCount} words</span>
                     <div className="flex items-center space-x-1">
                       <Button
                         variant="ghost"

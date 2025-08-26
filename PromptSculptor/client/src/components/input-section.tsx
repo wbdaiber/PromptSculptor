@@ -122,14 +122,14 @@ export default function InputSection({
       <Card>
         <CardHeader className="border-b border-slate-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">Natural Language Input</h3>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Natural Language Input</h3>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-slate-500">{characterCount}</span>
               <span className="text-sm text-slate-400">/</span>
               <span className="text-sm text-slate-400">5000</span>
             </div>
           </div>
-          <p className="text-sm text-slate-500 mt-1">Describe your task or requirements in plain language</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Describe your task or requirements in plain language</p>
         </CardHeader>
         <CardContent className="p-6">
           <Textarea
@@ -177,13 +177,13 @@ export default function InputSection({
       {/* Advanced Options */}
       <Card>
         <CardHeader className="border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Advanced Options</h3>
-          <p className="text-sm text-slate-500 mt-1">Customize the generated prompt structure</p>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Advanced Options</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Customize the generated prompt structure</p>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium text-slate-700 mb-2">Target Model</Label>
+              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Target Model</Label>
               <Select value={targetModel} onValueChange={setTargetModel}>
                 <SelectTrigger>
                   <SelectValue />
@@ -196,7 +196,7 @@ export default function InputSection({
               </Select>
             </div>
             <div>
-              <Label className="text-sm font-medium text-slate-700 mb-2">Complexity Level</Label>
+              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Complexity Level</Label>
               <Select value={complexityLevel} onValueChange={setComplexityLevel}>
                 <SelectTrigger>
                   <SelectValue />
@@ -217,7 +217,7 @@ export default function InputSection({
                 checked={includeExamples}
                 onCheckedChange={(checked) => setIncludeExamples(checked === true)}
               />
-              <Label htmlFor="includeExamples" className="text-sm text-slate-700">
+              <Label htmlFor="includeExamples" className="text-sm text-slate-700 dark:text-slate-300">
                 Include examples in prompt
               </Label>
             </div>
@@ -227,7 +227,7 @@ export default function InputSection({
                 checked={useXMLTags}
                 onCheckedChange={(checked) => setUseXMLTags(checked === true)}
               />
-              <Label htmlFor="useXMLTags" className="text-sm text-slate-700">
+              <Label htmlFor="useXMLTags" className="text-sm text-slate-700 dark:text-slate-300">
                 Use XML-style tags (Claude optimized)
               </Label>
             </div>
@@ -237,7 +237,7 @@ export default function InputSection({
                 checked={includeConstraints}
                 onCheckedChange={(checked) => setIncludeConstraints(checked === true)}
               />
-              <Label htmlFor="includeConstraints" className="text-sm text-slate-700">
+              <Label htmlFor="includeConstraints" className="text-sm text-slate-700 dark:text-slate-300">
                 Add constraint sections
               </Label>
             </div>
