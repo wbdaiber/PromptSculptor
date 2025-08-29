@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, ArrowRight, AlertCircle, Key, ExternalLink, BookmarkPlus, ChevronDown } from "lucide-react";
+import { Trash2, ArrowRight, BookmarkPlus, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,8 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { generatePrompt } from "@/lib/api";
@@ -56,14 +54,22 @@ export default function InputSection({
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, apiKeys } = useAuth();
+  const { user } = useAuth();
 
   // Clear demo state when user authenticates with API keys
   useEffect(() => {
-    if (user && apiKeys.length > 0 && lastGeneratedResult?.isDemoMode) {
+    if (user && lastGeneratedResult?.isDemoMode) {
       setLastGeneratedResult(null);
     }
-  }, [user, apiKeys.length, lastGeneratedResult?.isDemoMode]);
+  }, [user, lastGeneratedResult?.isDemoMode]);
+
+  // Clear input when user logs out
+  useEffect(() => {
+    if (!user) {
+      setNaturalLanguageInput("");
+      setLastGeneratedResult(null);
+    }
+  }, [user]);
 
   // Load template sample input when template is selected
   useEffect(() => {
@@ -184,83 +190,8 @@ export default function InputSection({
 
   const characterCount = naturalLanguageInput.length;
 
-  // Demo Mode Indicator Component
-  const DemoModeIndicator = () => {
-    // Show demo mode indicator if:
-    // 1. User is not signed in, OR
-    // 2. User is signed in but has no API keys
-    const shouldShowDemo = 
-      !user || 
-      (user && apiKeys.length === 0);
-
-    if (!shouldShowDemo) {
-      return null;
-    }
-
-    // Use contextual messaging based on user state
-    let demoMessage: string;
-    let callToAction: string;
-
-    if (!user) {
-      // Not signed in
-      demoMessage = "This is a demo prompt showcasing PromptSculptor's capabilities. Sign up to save your prompts and unlock AI-powered generation!";
-      callToAction = "Create free account to add your API keys and generate personalized prompts";
-    } else {
-      // Signed in but no API keys
-      demoMessage = "You're using template-based demo mode. Add your API keys to unlock AI-powered generation with your preferred models.";
-      callToAction = "Add API keys to unlock AI-powered generation";
-    }
-
-    return (
-      <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
-        <AlertCircle className="h-4 w-4 text-orange-600" />
-        <AlertDescription className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-orange-700 border-orange-300">
-              Demo Mode
-            </Badge>
-            <span className="text-sm text-orange-800 dark:text-orange-300">
-              Generated using templates
-            </span>
-          </div>
-          {demoMessage && (
-            <p className="text-sm text-orange-700 dark:text-orange-400">
-              {demoMessage}
-            </p>
-          )}
-          {callToAction && (
-            <div className="pt-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="text-orange-700 border-orange-300 hover:bg-orange-100 dark:text-orange-300 dark:border-orange-700 dark:hover:bg-orange-950/40 whitespace-normal text-left h-auto min-h-[36px] flex-shrink-0 max-w-full"
-                onClick={() => {
-                  if (!user) {
-                    // Dispatch event to open signup/signin modal for unauthenticated users
-                    const event = new CustomEvent('openAuthModal');
-                    window.dispatchEvent(event);
-                  } else {
-                    // Dispatch event to open API key settings modal for authenticated users
-                    const event = new CustomEvent('openApiKeySettings');
-                    window.dispatchEvent(event);
-                  }
-                }}
-              >
-                <Key className="h-3 w-3 mr-1 flex-shrink-0" />
-                <span className="break-words">{callToAction}</span>
-              </Button>
-            </div>
-          )}
-        </AlertDescription>
-      </Alert>
-    );
-  };
-
   return (
     <div className="space-y-6">
-      {/* Demo Mode Indicator */}
-      <DemoModeIndicator />
-
       {/* Input Section */}
       <Card>
         <CardHeader className="border-b border-slate-200">

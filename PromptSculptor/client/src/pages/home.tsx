@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { HelpCircle, Settings, User, LogIn } from "lucide-react";
+import { HelpCircle, Settings, User, LogIn, AlertCircle, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import InputSection from "@/components/input-section";
 import OutputSection from "@/components/output-section";
 import RecentPrompts from "@/components/recent-prompts";
@@ -24,7 +26,7 @@ export default function Home() {
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
 
-  const { user, loading } = useAuth();
+  const { user, loading, apiKeys } = useAuth();
 
   // Close auth modal when user successfully logs in
   useEffect(() => {
@@ -77,6 +79,71 @@ export default function Home() {
 
   const handleTemplateDelete = (template: Template) => {
     setDeletingTemplate(template);
+  };
+
+  // Demo Mode Indicator Component
+  const DemoModeIndicator = () => {
+    // Show demo mode indicator if:
+    // 1. User is not signed in, OR
+    // 2. User is signed in but has no API keys
+    const shouldShowDemo = 
+      !user || 
+      (user && apiKeys.length === 0);
+
+    if (!shouldShowDemo) {
+      return null;
+    }
+
+    // Use conditional messaging based on user state
+    let demoMessage: string;
+    let buttonText: string;
+
+    if (!user) {
+      // Not signed in
+      demoMessage = "This is a demo prompt. Sign up to create and save your prompts and unlock AI-powered generation!";
+      buttonText = "Create Free Account";
+    } else {
+      // Signed in but no API keys
+      demoMessage = "You're using template-based demo mode. Add your API keys to unlock AI-powered generation with your preferred models.";
+      buttonText = "Add API Keys";
+    }
+
+    return (
+      <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+        <AlertCircle className="h-4 w-4 text-orange-600" />
+        <AlertDescription className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-orange-700 border-orange-300">
+              Demo Mode
+            </Badge>
+          </div>
+          <p className="text-sm text-orange-700 dark:text-orange-400">
+            {demoMessage}
+          </p>
+          <div className="pt-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-orange-700 border-orange-300 hover:bg-orange-100 dark:text-orange-300 dark:border-orange-700 dark:hover:bg-orange-950/40 whitespace-normal text-left h-auto min-h-[36px] flex-shrink-0 max-w-full"
+              onClick={() => {
+                if (!user) {
+                  // Dispatch event to open signup/signin modal for unauthenticated users
+                  const event = new CustomEvent('openAuthModal');
+                  window.dispatchEvent(event);
+                } else {
+                  // Dispatch event to open API key settings modal for authenticated users
+                  const event = new CustomEvent('openApiKeySettings');
+                  window.dispatchEvent(event);
+                }
+              }}
+            >
+              <Key className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="break-words">{buttonText}</span>
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
   };
 
   return (
@@ -142,13 +209,15 @@ export default function Home() {
                 onDelete={handleTemplateDelete}
                 isLoading={templatesLoading}
               />
+              {/* Demo Mode Indicator */}
+              <DemoModeIndicator />
             </div>
           </div>
 
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
             {/* Mobile Template Dropdown - Only visible on mobile/tablet */}
-            <div className="lg:hidden mb-8">
+            <div className="lg:hidden mb-8 space-y-4">
               <TemplateDropdown
                 templates={templates}
                 selectedTemplate={selectedTemplate}
@@ -157,10 +226,12 @@ export default function Home() {
                 onDelete={handleTemplateDelete}
                 isLoading={templatesLoading}
               />
+              {/* Demo Mode Indicator */}
+              <DemoModeIndicator />
             </div>
 
             {/* Main Interface */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className="space-y-8 mb-8">
               <InputSection
                 selectedTemplate={selectedTemplate}
                 onPromptGenerated={handlePromptGenerated}

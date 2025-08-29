@@ -84,6 +84,7 @@ npm run db:push
 - Rate limiting on AI endpoints
 - Session security with secure cookies in production
 - CORS configured for specific origins
+- **State Isolation on Logout**: Component-level state cleared when users log out to prevent data leakage between sessions
 
 ### Recent Architecture Refactoring (Phases 1-5 Complete)
 
@@ -96,8 +97,13 @@ npm run db:push
 - **Enhanced Response Format**: API responses include `demoInfo` with contextual messaging
 
 **Frontend Components Updated**:
-- **Input Section** (`client/src/components/input-section.tsx`): Demo mode indicators with call-to-action buttons
-  - **Demo Mode Detection**: Only shows when user is unauthenticated OR authenticated without API keys
+- **Input Section** (`client/src/components/input-section.tsx`): Streamlined natural language input interface
+  - **Focused Interface**: Demo mode indicators removed for cleaner, less cluttered input experience
+  - **Advanced Options**: Integrated collapsible advanced options within main input card
+- **Demo Mode Integration** (`client/src/pages/home.tsx`): Contextual demo mode indicators moved to sidebar
+  - **Strategic Placement**: Demo mode notifications positioned beneath Quick Start Templates in left sidebar
+  - **Contextual Messaging**: Different messages and buttons for unauthenticated users ("Create Free Account") vs authenticated users without API keys ("Add API Keys")
+  - **Responsive Design**: Shows in desktop sidebar and mobile template section
   - **State Management**: Auto-clears demo state when users add API keys (no dependency on generation history)
 - **API Key Manager** (`client/src/components/settings/ApiKeyManager.tsx`): Service status dashboard and onboarding guidance
 - **Template System** (`client/src/components/template-dropdown.tsx`): **NEW COMPONENT - Aug 29, 2025**
@@ -125,6 +131,9 @@ npm run db:push
   - Modified `client/src/lib/queryClient.ts`: Changed `staleTime: Infinity` → `staleTime: 0` for proper cache invalidation
   - Enhanced `client/src/context/AuthContext.tsx`: Added aggressive cache clearing with `queryClient.removeQueries()` on logout
   - Updated `client/src/pages/home.tsx`: Added authentication state to template query keys for proper cache scoping
+- **User Input State Isolation**: Fixed component-level state persistence causing user prompts to remain visible after logout
+  - Updated `client/src/components/input-section.tsx`: Added `useEffect` hook to clear `naturalLanguageInput` and `lastGeneratedResult` when user logs out
+  - **Security Impact**: Prevents data leakage between user sessions and ensures proper session boundaries
 - **Session Authentication**: Fixed authentication validation in protected routes to check both `req.user` and `req.userId`
   - Updated `server/routes.ts`: Fixed template/prompt creation/modification endpoints authentication logic
 
