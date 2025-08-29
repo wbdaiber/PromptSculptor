@@ -1,8 +1,11 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, type GenerateContentParameters, type GenerateContentResponse } from "@google/genai";
 import { type GeneratePromptRequest } from "@shared/schema";
 import { APIKeyManager } from "./apiKeyManager";
+import { UserApiKeyManager } from "./userApiKeyManager";
+import { EnhancedDemoMode, type EnhancedGeneratedPromptResult } from "./enhancedDemoMode";
+import type { DatabaseStorage } from "../databaseStorage";
 
 /*
 <important_code_snippet_instructions>
@@ -25,9 +28,20 @@ export interface GeneratedPromptResult {
   wordCount: number;
   qualityScore: number;
   title: string;
+  isDemoMode?: boolean;
+  demoMessage?: string;
+  callToAction?: string;
+}
+
+export interface UserContext {
+  userId?: string;
+  isAuthenticated: boolean;
+  dbStorage?: DatabaseStorage;
 }
 
 function generateDemoPrompt(request: GeneratePromptRequest): GeneratedPromptResult {
+  // DEPRECATED: This function is kept for backward compatibility
+  // New code should use EnhancedDemoMode.generateEnhancedDemo() instead
   const templates = {
     analysis: `# Data Analysis Expert
 
@@ -215,8 +229,101 @@ ${request.useXMLTags ? '</output_format>' : ''}`
   };
 }
 
-export async function generateStructuredPrompt(request: GeneratePromptRequest): Promise<GeneratedPromptResult> {
-  // Determine which API to use based on target model
+export async function generateStructuredPrompt(
+  request: GeneratePromptRequest, 
+  userContext?: UserContext
+): Promise<GeneratedPromptResult> {
+  // Priority System: User Keys → Enhanced Demo → System Keys (optional)
+  
+  // First, try user-specific API keys if authenticated
+  if (userContext?.isAuthenticated && userContext?.userId && userContext?.dbStorage) {
+    const userClient = await UserApiKeyManager.getUserAIClient(
+      userContext.userId,
+      request.targetModel,
+      userContext.dbStorage
+    );
+    
+    if (userClient) {
+      return await generateWithUserClient(request, userClient, request.targetModel);
+    }
+    
+    // User is authenticated but lacks specific API key - enhanced demo with guidance
+    return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+      isAuthenticated: true,
+      availableServices: [],
+      targetModel: request.targetModel,
+      message: `Add your ${getServiceName(request.targetModel)} API key in Settings for AI-powered generation`
+    });
+  }
+  
+  // For unauthenticated users - enhanced demo with signup encouragement
+  if (!userContext?.isAuthenticated) {
+    return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+      isAuthenticated: false,
+      availableServices: [],
+      targetModel: request.targetModel,
+      message: "Sign up to save prompts and use your own API keys for better results"
+    });
+  }
+  
+  // Fallback to system keys (optional - for admin/testing purposes)
+  return generateWithSystemKeys(request);
+}
+
+function getServiceName(targetModel: string): string {
+  switch (targetModel.toLowerCase()) {
+    case 'gpt':
+    case 'openai':
+      return 'OpenAI';
+    case 'claude':
+    case 'anthropic':
+      return 'Anthropic';
+    case 'gemini':
+    case 'google':
+      return 'Gemini';
+    default:
+      return 'API';
+  }
+}
+
+async function generateWithUserClient(
+  request: GeneratePromptRequest,
+  client: OpenAI | Anthropic | GoogleGenAI,
+  targetModel: string
+): Promise<GeneratedPromptResult> {
+  try {
+    if (client instanceof Anthropic) {
+      return await generateWithClaude(request, client);
+    } else if (client instanceof OpenAI) {
+      return await generateWithOpenAI(request, client);
+    } else {
+      // Treat any non-OpenAI/Anthropic client here as GoogleGenAI instance
+      return await generateWithGemini(request, client as GoogleGenAI);
+    }
+  } catch (error) {
+    // If user's API key fails (expired, quota exceeded, etc.), fall back to enhanced demo
+    if (error instanceof Error && (
+      error.message.includes('quota') ||
+      error.message.includes('billing') ||
+      error.message.includes('429') ||
+      error.message.includes('401') ||
+      error.message.includes('insufficient')
+    )) {
+      return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+        isAuthenticated: true,
+        availableServices: [],
+        targetModel,
+        message: `Your ${getServiceName(targetModel)} API key encountered an issue. Check your API key settings.`
+      });
+    }
+    
+    // Re-throw other errors
+    throw error;
+  }
+}
+
+async function generateWithSystemKeys(request: GeneratePromptRequest): Promise<GeneratedPromptResult> {
+  // Optional system keys for admin/testing - same logic as before but with enhanced demo fallback
   const isClaudeModel = request.targetModel === 'claude';
   const isOpenAIModel = request.targetModel === 'gpt';
   const isGeminiModel = request.targetModel === 'gemini';
@@ -225,24 +332,44 @@ export async function generateStructuredPrompt(request: GeneratePromptRequest): 
   if (isClaudeModel) {
     const anthropicClient = APIKeyManager.getAnthropicClient();
     if (!anthropicClient) {
-      return generateDemoPrompt(request);
+      return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+        isAuthenticated: false,
+        availableServices: [],
+        targetModel: 'claude',
+        message: "This feature requires an API key. Sign up to add your own Anthropic key."
+      });
     }
     return generateWithClaude(request, anthropicClient);
   } else if (isOpenAIModel) {
     const openaiClient = APIKeyManager.getOpenAIClient();
     if (!openaiClient) {
-      return generateDemoPrompt(request);
+      return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+        isAuthenticated: false,
+        availableServices: [],
+        targetModel: 'gpt',
+        message: "This feature requires an API key. Sign up to add your own OpenAI key."
+      });
     }
     return generateWithOpenAI(request, openaiClient);
   } else if (isGeminiModel) {
     const geminiClient = APIKeyManager.getGeminiClient();
     if (!geminiClient) {
-      return generateDemoPrompt(request);
+      return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+        isAuthenticated: false,
+        availableServices: [],
+        targetModel: 'gemini',
+        message: "This feature requires an API key. Sign up to add your own Gemini key."
+      });
     }
     return generateWithGemini(request, geminiClient);
   } else {
-    // Fallback to demo mode for unknown models
-    return generateDemoPrompt(request);
+    // Fallback to enhanced demo mode for unknown models
+    return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+      isAuthenticated: false,
+      availableServices: [],
+      targetModel: request.targetModel,
+      message: "Model not supported. Try Claude, GPT, or Gemini."
+    });
   }
 }
 
@@ -349,12 +476,17 @@ ${request.includeConstraints ? '- Add specific constraints and limitations.' : '
       console.error(`AI service error ${errorId}: Claude API unavailable`);
     }
     
-    // If it's a quota/billing error, fall back to demo mode
+    // If it's a quota/billing error, fall back to enhanced demo mode
     if (error instanceof Error && (error.message.includes('quota') || error.message.includes('billing') || error.message.includes('429'))) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('Anthropic quota exceeded, using demo mode');
+        console.warn('Anthropic quota exceeded, using enhanced demo mode');
       }
-      return generateDemoPrompt(request);
+      return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+        isAuthenticated: true,
+        availableServices: [],
+        targetModel: 'claude',
+        message: "Anthropic API quota exceeded. Check your API key billing status."
+      });
     }
     
     throw new Error("Failed to generate structured prompt with Claude. Please try again.");
@@ -431,19 +563,30 @@ ${request.includeConstraints ? 'Add specific constraints and limitations.' : ''}
       console.error(`AI service error ${errorId}: OpenAI API unavailable`);
     }
     
-    // If it's a quota/billing error, fall back to demo mode
-    if (error instanceof Error && (error.message.includes('quota') || error.message.includes('billing') || error.message.includes('429'))) {
+    // If it's a API key error (401, quota, billing), fall back to enhanced demo mode
+    if (error instanceof Error && (
+      error.message.includes('quota') || 
+      error.message.includes('billing') || 
+      error.message.includes('429') ||
+      error.message.includes('401') ||
+      error.message.includes('Incorrect API key')
+    )) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('OpenAI quota exceeded, using demo mode');
+        console.warn('OpenAI API key issue, using enhanced demo mode');
       }
-      return generateDemoPrompt(request);
+      return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+        isAuthenticated: true,
+        availableServices: [],
+        targetModel: 'gpt',
+        message: "Check your OpenAI API key - it may be invalid or have billing issues."
+      });
     }
     
     throw new Error("Failed to generate structured prompt with OpenAI. Please try again.");
   }
 }
 
-async function generateWithGemini(request: GeneratePromptRequest, gemini: GoogleGenerativeAI): Promise<GeneratedPromptResult> {
+async function generateWithGemini(request: GeneratePromptRequest, ai: GoogleGenAI): Promise<GeneratedPromptResult> {
   const systemPrompt = `You are an expert prompt engineer specializing in creating well-structured, effective prompts for large language models. Your task is to transform natural language instructions into professional, structured markdown prompts optimized for Gemini.
 
 Key principles for Gemini optimization:
@@ -492,23 +635,27 @@ ${request.includeConstraints ? '- Add specific constraints and limitations.' : '
 Remember to output only valid JSON with the exact format specified above.`;
 
   try {
-    // Get the generative model (using Gemini Pro for text generation)
-    const model = gemini.getGenerativeModel({ model: "gemini-pro" });
-    
     // Combine system and user prompts for Gemini
     const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
     
-    // Generate content
-    const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
-    const text = response.text();
+    // Use supported default model per guidance
+    const modelId = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    
+    // Generate content via @google/genai
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: modelId,
+      contents: fullPrompt,
+      // Pass config directly if needed (kept minimal here)
+      // config: { temperature: 0.7 }
+    } as GenerateContentParameters);
+    const text = response.text ?? '';
     
     // Parse the JSON response from Gemini
     let parsedResult;
     try {
       // Clean the content - remove JSON code blocks if present
       let cleanContent = text;
-      if (text.includes('```json')) {
+      if (text && text.includes('```json')) {
         cleanContent = text.replace(/```json\s*/, '').replace(/```\s*$/, '').trim();
       }
       
@@ -545,14 +692,28 @@ Remember to output only valid JSON with the exact format specified above.`;
       console.error(`AI service error ${errorId}: Gemini API unavailable`);
     }
     
-    // If it's a quota/billing error, fall back to demo mode
-    if (error instanceof Error && (error.message.includes('quota') || error.message.includes('billing') || error.message.includes('429'))) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Gemini quota exceeded, using demo mode');
-      }
-      return generateDemoPrompt(request);
+    // Fall back to enhanced demo mode for any Gemini API errors
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Gemini API error, using enhanced demo mode:', error instanceof Error ? error.message : 'Unknown error');
     }
     
-    throw new Error("Failed to generate structured prompt with Gemini. Please try again.");
+    // Determine appropriate message based on error type
+    let message = "Gemini generation encountered an issue. Using demo mode instead.";
+    if (error instanceof Error) {
+      if (error.message.includes('quota') || error.message.includes('billing') || error.message.includes('429')) {
+        message = "Gemini API quota exceeded. Check your API key billing status.";
+      } else if (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key') || error.message.includes('authentication')) {
+        message = "Check your Gemini API key - it may be invalid or need to be enabled in Google Cloud Console.";
+      } else if (error.message.includes('model')) {
+        message = "Gemini model error. The API key may not have access to this model.";
+      }
+    }
+    
+    return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+      isAuthenticated: true,
+      availableServices: [],
+      targetModel: 'gemini',
+      message
+    });
   }
 }

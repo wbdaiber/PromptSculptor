@@ -3,6 +3,7 @@ import passport from 'passport';
 import { DatabaseStorage } from '../databaseStorage';
 import { z } from 'zod';
 import { sanitizeInput } from '../utils/sanitizer';
+import { UserApiKeyManager } from '../services/userApiKeyManager';
 
 const router = Router();
 
@@ -119,6 +120,12 @@ router.post('/login', (req: Request, res: Response, next: NextFunction) => {
 
 // Logout
 router.post('/logout', (req: Request, res: Response) => {
+  // Clear user's API client cache before logout
+  const userId = req.user?.id;
+  if (userId) {
+    UserApiKeyManager.clearUserCache(userId);
+  }
+  
   req.logout((err) => {
     if (err) {
       console.error('Logout error:', err);

@@ -1,19 +1,38 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Clipboard, ArrowRight } from "lucide-react";
+import { Trash2, Clipboard, ArrowRight, AlertCircle, Key, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import { generatePrompt } from "@/lib/api";
 import type { Template, GeneratePromptRequest } from "@shared/schema";
 
+interface GeneratedPromptResult {
+  generatedPrompt: string;
+  wordCount: number;
+  qualityScore: number;
+  title: string;
+  promptId?: string | null;
+  isDemoMode?: boolean;
+  demoMessage?: string;
+  callToAction?: string;
+  demoInfo?: {
+    isDemoMode: boolean;
+    message: string;
+    callToAction: string;
+  };
+}
+
 interface InputSectionProps {
   selectedTemplate: Template | null;
-  onPromptGenerated: (result: any) => void;
+  onPromptGenerated: (result: GeneratedPromptResult) => void;
   isGenerating: boolean;
   setIsGenerating: (generating: boolean) => void;
 }
@@ -30,9 +49,11 @@ export default function InputSection({
   const [includeExamples, setIncludeExamples] = useState(true);
   const [useXMLTags, setUseXMLTags] = useState(true);
   const [includeConstraints, setIncludeConstraints] = useState(false);
+  const [lastGeneratedResult, setLastGeneratedResult] = useState<GeneratedPromptResult | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, apiKeys } = useAuth();
 
   // Load template sample input when template is selected
   useEffect(() => {
@@ -43,14 +64,24 @@ export default function InputSection({
 
   const generateMutation = useMutation({
     mutationFn: generatePrompt,
-    onSuccess: (result) => {
+    onSuccess: (result: GeneratedPromptResult) => {
+      setLastGeneratedResult(result);
       onPromptGenerated(result);
-      toast({
-        title: "Prompt Generated",
-        description: "Your structured prompt has been generated successfully.",
-      });
-      // Invalidate recent prompts to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/prompts/recent"] });
+      
+      // Show different toast messages based on demo mode vs regular mode
+      if (result.isDemoMode || result.demoInfo?.isDemoMode) {
+        toast({
+          title: "Demo Prompt Generated",
+          description: "This is a demo-quality prompt. Add your API keys for AI-powered generation.",
+        });
+      } else {
+        toast({
+          title: "Prompt Generated",
+          description: "Your AI-powered structured prompt has been generated successfully.",
+        });
+        // Only invalidate recent prompts for non-demo results (saved prompts)
+        queryClient.invalidateQueries({ queryKey: ["/api/prompts/recent"] });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -116,8 +147,89 @@ export default function InputSection({
 
   const characterCount = naturalLanguageInput.length;
 
+  // Demo Mode Indicator Component
+  const DemoModeIndicator = () => {
+    // Show demo mode indicator if:
+    // 1. User is not signed in, OR
+    // 2. User is signed in but has no API keys, OR  
+    // 3. Last generated result was in demo mode
+    const shouldShowDemo = 
+      !user || 
+      (user && apiKeys.length === 0) ||
+      (lastGeneratedResult && (lastGeneratedResult.isDemoMode || lastGeneratedResult.demoInfo?.isDemoMode));
+
+    if (!shouldShowDemo) {
+      return null;
+    }
+
+    // Use contextual messaging based on user state
+    let demoMessage: string;
+    let callToAction: string;
+
+    if (!user) {
+      // Not signed in
+      demoMessage = "This is a demo prompt showcasing PromptSculptor's capabilities. Sign up to save your prompts and unlock AI-powered generation!";
+      callToAction = "Create free account to add your API keys and generate personalized prompts";
+    } else if (apiKeys.length === 0) {
+      // Signed in but no API keys
+      demoMessage = "You're using template-based demo mode. Add your API keys to unlock AI-powered generation with your preferred models.";
+      callToAction = "Add API keys to unlock AI-powered generation";
+    } else {
+      // Use messages from the last generated result (fallback)
+      demoMessage = lastGeneratedResult?.demoMessage || lastGeneratedResult?.demoInfo?.message || "Demo mode active";
+      callToAction = lastGeneratedResult?.callToAction || lastGeneratedResult?.demoInfo?.callToAction || "Add API keys";
+    }
+
+    return (
+      <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+        <AlertCircle className="h-4 w-4 text-orange-600" />
+        <AlertDescription className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-orange-700 border-orange-300">
+              Demo Mode
+            </Badge>
+            <span className="text-sm text-orange-800 dark:text-orange-300">
+              Generated using high-quality templates
+            </span>
+          </div>
+          {demoMessage && (
+            <p className="text-sm text-orange-700 dark:text-orange-400">
+              {demoMessage}
+            </p>
+          )}
+          {callToAction && (
+            <div className="pt-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="text-orange-700 border-orange-300 hover:bg-orange-100 dark:text-orange-300 dark:border-orange-700 dark:hover:bg-orange-950/40 whitespace-normal text-left h-auto min-h-[36px] flex-shrink-0 max-w-full"
+                onClick={() => {
+                  if (!user) {
+                    // Dispatch event to open signup/signin modal for unauthenticated users
+                    const event = new CustomEvent('openAuthModal');
+                    window.dispatchEvent(event);
+                  } else {
+                    // Dispatch event to open API key settings modal for authenticated users
+                    const event = new CustomEvent('openApiKeySettings');
+                    window.dispatchEvent(event);
+                  }
+                }}
+              >
+                <Key className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="break-words">{callToAction}</span>
+              </Button>
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
+  };
+
   return (
     <div className="space-y-6">
+      {/* Demo Mode Indicator */}
+      <DemoModeIndicator />
+
       {/* Input Section */}
       <Card>
         <CardHeader className="border-b border-slate-200">

@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { createStorage } from "./storage";
-import { generateStructuredPrompt } from "./services/promptGenerator";
+import { generateStructuredPrompt, type UserContext } from "./services/promptGenerator";
+import { DatabaseStorage } from "./databaseStorage";
 import { generatePromptRequestSchema, insertPromptSchema } from "../shared/schema.js";
 import { z } from "zod";
 import { requireApiKey, optionalApiKey, getAuthStatus } from "./middleware/basicAuth";
@@ -61,34 +62,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sanitize user input to prevent XSS and injection attacks
       const sanitizedRequest = sanitizePromptRequest(rawRequest);
       
-      // Generate prompt with sanitized input
-      const result = await generateStructuredPrompt(sanitizedRequest);
+      // Create user context for the prompt generator
+      const userContext: UserContext = {
+        userId: req.userId,
+        isAuthenticated: !!req.user || !!req.userId,
+        dbStorage: req.userId ? new DatabaseStorage(req.userId) : undefined
+      };
       
-      // Create user-specific storage instance
-      const userStorage = createStorage(req.userId);
+      // Generate prompt with sanitized input and user context
+      const result = await generateStructuredPrompt(sanitizedRequest, userContext);
       
-      // Sanitize and validate the output before saving
-      const promptData = insertPromptSchema.parse({
-        title: sanitizeTitle(result.title || 'Generated Prompt', 255),
-        naturalLanguageInput: sanitizedRequest.naturalLanguageInput,
-        generatedPrompt: sanitizeOutput(result.generatedPrompt || '', 50000),
-        templateType: sanitizedRequest.templateType,
-        targetModel: sanitizedRequest.targetModel,
-        complexityLevel: sanitizedRequest.complexityLevel,
-        includeExamples: sanitizedRequest.includeExamples,
-        useXMLTags: sanitizedRequest.useXMLTags,
-        includeConstraints: sanitizedRequest.includeConstraints,
-        wordCount: Math.min(Math.max(result.wordCount || 0, 0), 50000), // Clamp word count
-        qualityScore: Math.min(Math.max(result.qualityScore || 0, 0), 100), // Clamp quality score
-        userId: req.userId || null, // Associate with user if authenticated
-      });
+      // Handle demo mode vs regular mode persistence
+      let savedPrompt = null;
+      let response: any;
+      
+      if (!result.isDemoMode && req.userId) {
+        // Regular mode: save to database
+        const userStorage = createStorage(req.userId);
+        
+        // Sanitize and validate the output before saving
+        const promptData = insertPromptSchema.parse({
+          title: sanitizeTitle(result.title || 'Generated Prompt', 255),
+          naturalLanguageInput: sanitizedRequest.naturalLanguageInput,
+          generatedPrompt: sanitizeOutput(result.generatedPrompt || '', 50000),
+          templateType: sanitizedRequest.templateType,
+          targetModel: sanitizedRequest.targetModel,
+          complexityLevel: sanitizedRequest.complexityLevel,
+          includeExamples: sanitizedRequest.includeExamples,
+          useXMLTags: sanitizedRequest.useXMLTags,
+          includeConstraints: sanitizedRequest.includeConstraints,
+          wordCount: Math.min(Math.max(result.wordCount || 0, 0), 50000), // Clamp word count
+          qualityScore: Math.min(Math.max(result.qualityScore || 0, 0), 100), // Clamp quality score
+          userId: req.userId || null, // Associate with user if authenticated
+        });
 
-      const savedPrompt = await userStorage.createPrompt(promptData);
+        savedPrompt = await userStorage.createPrompt(promptData);
+        
+        response = {
+          ...result,
+          promptId: savedPrompt.id
+        };
+      } else {
+        // Demo mode or unauthenticated: don't save to database
+        response = {
+          ...result,
+          promptId: null,
+          demoInfo: {
+            isDemoMode: result.isDemoMode,
+            message: result.demoMessage,
+            callToAction: result.callToAction
+          }
+        };
+      }
       
-      res.json({
-        ...result,
-        promptId: savedPrompt.id
-      });
+      res.json(response);
     } catch (error) {
       // SECURE: Log errors safely with tracking ID
       const errorId = Date.now().toString(36);
@@ -108,18 +135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  // Generate structured prompt - PROTECTED: Requires authentication (API key OR session) and rate limiting
+  // Generate structured prompt - ALLOWS unauthenticated demo mode, with rate limiting
   app.post("/api/prompts/generate", aiLimiter, extractUserId, async (req, res) => {
-    // Allow both API key authentication and session-based authentication
+    // Allow API key authentication, session-based authentication, OR unauthenticated demo mode
     const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
     const isSessionAuth = req.user;
-    
-    if (!isApiKeyAuth && !isSessionAuth) {
-      return res.status(401).json({ 
-        error: 'Authentication required',
-        message: 'Please provide either an API key or log in to access this service'
-      });
-    }
     
     // Validate API key if provided (for external API access)
     if (isApiKeyAuth && !isSessionAuth) {

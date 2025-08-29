@@ -18,6 +18,7 @@ export default function Home() {
   const [generatedResult, setGeneratedResult] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalDefaultView, setAuthModalDefaultView] = useState<'login' | 'signup'>('login');
 
   const { user, loading } = useAuth();
 
@@ -27,6 +28,28 @@ export default function Home() {
       setShowAuthModal(false);
     }
   }, [user, showAuthModal]);
+
+  // Listen for custom events from demo mode indicators
+  useEffect(() => {
+    const handleOpenAuthModal = () => {
+      setAuthModalDefaultView('signup');
+      setShowAuthModal(true);
+    };
+
+    const handleOpenApiKeySettings = () => {
+      // Dispatch event to settings dropdown to open API key management
+      const settingsEvent = new CustomEvent('openSettings', { detail: { tab: 'apiKeys' } });
+      window.dispatchEvent(settingsEvent);
+    };
+
+    window.addEventListener('openAuthModal', handleOpenAuthModal);
+    window.addEventListener('openApiKeySettings', handleOpenApiKeySettings);
+
+    return () => {
+      window.removeEventListener('openAuthModal', handleOpenAuthModal);
+      window.removeEventListener('openApiKeySettings', handleOpenApiKeySettings);
+    };
+  }, []);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<Template[]>({
     queryKey: ["/api/templates"],
@@ -155,7 +178,8 @@ export default function Home() {
       {/* Authentication Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+        onClose={() => setShowAuthModal(false)}
+        defaultView={authModalDefaultView}
       />
     </div>
   );

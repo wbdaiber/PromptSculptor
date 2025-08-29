@@ -208,14 +208,6 @@ export default function OutputSection({ generatedResult, isGenerating }: OutputS
                 <RotateCcw className="h-3 w-3 mr-1" />
                 Regenerate
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-slate-500 hover:text-slate-700"
-              >
-                <Edit className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
             </div>
             <div className="flex items-center space-x-3">
               <Button variant="outline">Save as Template</Button>

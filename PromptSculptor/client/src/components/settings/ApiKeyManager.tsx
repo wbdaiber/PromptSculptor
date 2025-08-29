@@ -38,7 +38,10 @@ import {
   EyeOff, 
   Shield, 
   ExternalLink,
-  Loader2 
+  Loader2,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 
 const addKeySchema = z.object({
@@ -84,6 +87,24 @@ export const ApiKeyManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
+
+  // Check which services have API keys configured
+  const getServiceStatus = () => {
+    return Object.keys(serviceConfig).map(service => {
+      const hasKey = apiKeys.some(key => key.service === service);
+      const config = serviceConfig[service as keyof typeof serviceConfig];
+      
+      return {
+        service,
+        hasKey,
+        config,
+        icon: hasKey ? CheckCircle : XCircle,
+        iconColor: hasKey ? 'text-green-600' : 'text-red-500',
+        status: hasKey ? 'Configured' : 'Not configured',
+        statusColor: hasKey ? 'text-green-600' : 'text-red-500'
+      };
+    });
+  };
 
   const {
     register,
@@ -133,19 +154,69 @@ export const ApiKeyManager: React.FC = () => {
     return key.slice(0, 4) + '•'.repeat(key.length - 8) + key.slice(-4);
   };
 
+  const serviceStatuses = getServiceStatus();
+  const configuredCount = serviceStatuses.filter(s => s.hasKey).length;
+  const totalServices = serviceStatuses.length;
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2">
-              <Key className="w-5 h-5" />
-              API Key Management
-            </CardTitle>
-            <CardDescription>
-              Manage your personal API keys for AI services. Keys are encrypted and stored securely.
-            </CardDescription>
+    <div className="space-y-6">
+      {/* Service Status Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            AI Service Status
+          </CardTitle>
+          <CardDescription>
+            Overview of your configured AI services ({configuredCount}/{totalServices} configured)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {serviceStatuses.map(({ service, hasKey, config, icon: Icon, iconColor, status, statusColor }) => (
+              <div key={service} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="text-xl">{config.icon}</div>
+                  <div>
+                    <h4 className="font-medium text-sm">{config.name}</h4>
+                    <p className={`text-xs ${statusColor}`}>{status}</p>
+                  </div>
+                </div>
+                <Icon className={`w-4 h-4 ${iconColor}`} />
+              </div>
+            ))}
           </div>
+          
+          {configuredCount === 0 && (
+            <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <h4 className="font-medium text-orange-900 dark:text-orange-300">Demo Mode Active</h4>
+                  <p className="text-sm text-orange-700 dark:text-orange-400">
+                    You're currently using demo mode with template-based prompt generation. 
+                    Add your API keys below to unlock AI-powered generation with your preferred models.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* API Key Management */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <Key className="w-5 h-5" />
+                API Key Management
+              </CardTitle>
+              <CardDescription>
+                Manage your personal API keys for AI services. Keys are encrypted and stored securely.
+              </CardDescription>
+            </div>
           
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
@@ -298,12 +369,18 @@ export const ApiKeyManager: React.FC = () => {
             <Key className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No API Keys Added</h3>
             <p className="text-muted-foreground mb-4">
-              Add your personal API keys to access AI services directly.
+              Add your personal API keys to unlock AI-powered prompt generation with your preferred models.
+              Your keys are encrypted and stored securely.
             </p>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First API Key
-            </Button>
+            <div className="space-y-2">
+              <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First API Key
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                You can continue using demo mode without API keys
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -364,5 +441,6 @@ export const ApiKeyManager: React.FC = () => {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 };

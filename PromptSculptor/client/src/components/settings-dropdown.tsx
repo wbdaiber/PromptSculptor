@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserProfile, ApiKeyManager } from "./settings";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -17,6 +17,18 @@ export default function SettingsDropdown() {
   const { logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showApiKeys, setShowApiKeys] = useState(false);
+
+  // Listen for custom event to open API key settings
+  useEffect(() => {
+    const handleOpenApiKeySettings = () => {
+      setShowApiKeys(true);
+    };
+
+    window.addEventListener('openApiKeySettings', handleOpenApiKeySettings);
+    return () => {
+      window.removeEventListener('openApiKeySettings', handleOpenApiKeySettings);
+    };
+  }, []);
 
   return (
     <>

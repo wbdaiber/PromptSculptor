@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { config } from "../config/env";
 
 /**
@@ -10,7 +10,7 @@ import { config } from "../config/env";
 export class APIKeyManager {
   private static openaiClient: OpenAI | null = null;
   private static anthropicClient: Anthropic | null = null;
-  private static geminiClient: GoogleGenerativeAI | null = null;
+  private static geminiClient: GoogleGenAI | null = null;
   
   /**
    * Validates API key format and basic properties
@@ -91,7 +91,7 @@ export class APIKeyManager {
   /**
    * Get validated Gemini client instance
    */
-  static getGeminiClient(): GoogleGenerativeAI | null {
+  static getGeminiClient(): GoogleGenAI | null {
     if (this.geminiClient) {
       return this.geminiClient;
     }
@@ -102,7 +102,7 @@ export class APIKeyManager {
     }
     
     try {
-      this.geminiClient = new GoogleGenerativeAI(apiKey!);
+      this.geminiClient = new GoogleGenAI({ apiKey: apiKey! });
       return this.geminiClient;
     } catch (error) {
       if (config.NODE_ENV === 'development') {
