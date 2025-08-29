@@ -105,6 +105,12 @@ export function extractUserId(req: Request, res: Response, next: NextFunction) {
   if (req.user) {
     req.userId = req.user.id;
   }
+  
+  // Debug log for troubleshooting user authentication state
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - User ID: ${req.userId || 'ANONYMOUS'}`);
+  }
+  
   next();
 }
 

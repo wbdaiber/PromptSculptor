@@ -13,7 +13,7 @@ import {
   userApiKeys
 } from "@shared/schema";
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { eq, desc, and, sql, or } from 'drizzle-orm';
 import { Pool } from 'pg';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
@@ -132,22 +132,28 @@ export class DatabaseStorage implements IDatabaseStorage {
   }
 
   async getPrompts(): Promise<Prompt[]> {
-    const conditions = this.userId ? [eq(prompts.userId, this.userId)] : [];
+    // Only return prompts for authenticated users
+    if (!this.userId) {
+      return []; // No prompts for anonymous users
+    }
     
     return await this.db
       .select()
       .from(prompts)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(eq(prompts.userId, this.userId))
       .orderBy(desc(prompts.createdAt));
   }
 
   async getRecentPrompts(limit: number = 10): Promise<Prompt[]> {
-    const conditions = this.userId ? [eq(prompts.userId, this.userId)] : [];
+    // Only return prompts for authenticated users
+    if (!this.userId) {
+      return []; // No prompts for anonymous users
+    }
     
     return await this.db
       .select()
       .from(prompts)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(eq(prompts.userId, this.userId))
       .orderBy(desc(prompts.createdAt))
       .limit(limit);
   }
@@ -196,28 +202,87 @@ export class DatabaseStorage implements IDatabaseStorage {
   }
 
   async getTemplate(id: string): Promise<Template | undefined> {
+    // Check if template is default or belongs to the user
+    const conditions = [eq(templates.id, id)];
+    
+    if (!this.userId) {
+      // Only allow access to default templates for anonymous users
+      conditions.push(eq(templates.isDefault, true));
+    } else {
+      // Allow access to default templates or user's own templates
+      conditions.push(
+        or(
+          eq(templates.isDefault, true),
+          eq(templates.userId, this.userId)
+        )!
+      );
+    }
+    
     const result = await this.db
       .select()
       .from(templates)
-      .where(eq(templates.id, id))
+      .where(and(...conditions))
       .limit(1);
     
     return result[0];
   }
 
   async getTemplates(): Promise<Template[]> {
+    // Return only default system templates when no user context
+    if (!this.userId) {
+      return await this.db
+        .select()
+        .from(templates)
+        .where(eq(templates.isDefault, true))
+        .orderBy(templates.name);
+    }
+    
+    // Return default templates + user's own templates
     return await this.db
       .select()
       .from(templates)
+      .where(
+        or(
+          eq(templates.isDefault, true),
+          eq(templates.userId, this.userId)
+        )
+      )
       .orderBy(templates.name);
   }
 
   async getTemplatesByType(type: string): Promise<Template[]> {
+    // Return only default system templates when no user context
+    if (!this.userId) {
+      return await this.db
+        .select()
+        .from(templates)
+        .where(and(
+          eq(templates.type, type),
+          eq(templates.isDefault, true)
+        ))
+        .orderBy(templates.name);
+    }
+    
+    // Return default templates + user's own templates of specified type
     return await this.db
       .select()
       .from(templates)
-      .where(eq(templates.type, type))
+      .where(and(
+        eq(templates.type, type),
+        or(
+          eq(templates.isDefault, true),
+          eq(templates.userId, this.userId)
+        )
+      ))
       .orderBy(templates.name);
+  }
+
+  async getUserTemplates(userId: string): Promise<Template[]> {
+    return this.db
+      .select()
+      .from(templates)
+      .where(eq(templates.userId, userId))
+      .orderBy(desc(templates.createdAt), templates.name);
   }
 
   async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
@@ -227,6 +292,45 @@ export class DatabaseStorage implements IDatabaseStorage {
       .returning();
     
     return result[0];
+  }
+
+  async updateTemplate(id: string, updateTemplate: Partial<InsertTemplate>): Promise<Template | undefined> {
+    // First check if template exists and is not a default system template
+    const existing = await this.getTemplate(id);
+    if (!existing) return undefined;
+
+    // Prevent updating default system templates
+    if (existing.isDefault) return undefined;
+
+    // Also check ownership if userId is provided in the class
+    if (this.userId && existing.userId !== this.userId) return undefined;
+
+    const result = await this.db
+      .update(templates)
+      .set(updateTemplate)
+      .where(eq(templates.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  async deleteTemplate(id: string): Promise<boolean> {
+    // First check if template exists and is not a default system template
+    const existing = await this.getTemplate(id);
+    if (!existing) return false;
+
+    // Prevent deleting default system templates
+    if (existing.isDefault) return false;
+
+    // Also check ownership if userId is provided in the class
+    if (this.userId && existing.userId !== this.userId) return false;
+
+    const result = await this.db
+      .delete(templates)
+      .where(eq(templates.id, id))
+      .returning({ id: templates.id });
+    
+    return result.length > 0;
   }
 
   // User management methods

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { getCurrentUser, getUserApiKeys, addUserApiKey, deleteUserApiKey, login as apiLogin, signup as apiSignup, logout as apiLogout } from '@/lib/api';
+import { queryClient } from '@/lib/queryClient';
 
 // Types for authentication
 interface User {
@@ -119,6 +120,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     setUser(null);
     setApiKeys([]);
+    
+    // Clear all cached query data to prevent showing previous user's data
+    queryClient.clear();
+    
+    // Specifically remove template queries to ensure they are cleared
+    queryClient.removeQueries({ queryKey: ['/api/templates'] });
+    queryClient.removeQueries({ queryKey: ['/api/prompts'] });
+    
+    // Force immediate refetch of templates for demo mode
+    queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
   };
 
   // Add API key method

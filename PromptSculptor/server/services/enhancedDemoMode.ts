@@ -23,7 +23,6 @@ export interface DemoPromptOptions {
 export interface EnhancedGeneratedPromptResult {
   generatedPrompt: string;
   wordCount: number;
-  qualityScore: number;
   title: string;
   isDemoMode: boolean;
   demoMessage?: string;
@@ -48,7 +47,6 @@ export class EnhancedDemoMode {
       generatedPrompt: prompt,
       title: this.generateTitle(request),
       wordCount,
-      qualityScore: 85, // Demo quality score
       isDemoMode: true,
       demoMessage,
       callToAction

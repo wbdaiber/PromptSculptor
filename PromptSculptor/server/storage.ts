@@ -14,16 +14,21 @@ export interface IStorage {
   getTemplate(id: string): Promise<Template | undefined>;
   getTemplates(): Promise<Template[]>;
   getTemplatesByType(type: string): Promise<Template[]>;
+  getUserTemplates(userId: string): Promise<Template[]>;
   createTemplate(template: InsertTemplate): Promise<Template>;
+  updateTemplate(id: string, template: Partial<InsertTemplate>): Promise<Template | undefined>;
+  deleteTemplate(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private prompts: Map<string, Prompt>;
   private templates: Map<string, Template>;
+  private userId?: string;
 
-  constructor() {
+  constructor(userId?: string) {
     this.prompts = new Map();
     this.templates = new Map();
+    this.userId = userId;
     this.initializeDefaultTemplates();
   }
 
@@ -34,7 +39,13 @@ export class MemStorage implements IStorage {
 
     defaultTemplates.forEach(template => {
       const id = randomUUID();
-      const fullTemplate: Template = { ...template, id };
+      const fullTemplate: Template = { 
+        ...template, 
+        id,
+        userId: null,
+        isDefault: true,
+        createdAt: new Date()
+      };
       this.templates.set(id, fullTemplate);
     });
   }
@@ -44,9 +55,16 @@ export class MemStorage implements IStorage {
   }
 
   async getPrompts(): Promise<Prompt[]> {
-    return Array.from(this.prompts.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // Only return prompts for authenticated users
+    if (!this.userId) {
+      return []; // No prompts for anonymous users
+    }
+    
+    return Array.from(this.prompts.values())
+      .filter(prompt => prompt.userId === this.userId)
+      .sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
   }
 
   async getRecentPrompts(limit: number = 10): Promise<Prompt[]> {
@@ -69,7 +87,6 @@ export class MemStorage implements IStorage {
       useXMLTags: insertPrompt.useXMLTags ?? true,
       includeConstraints: insertPrompt.includeConstraints ?? false,
       wordCount: insertPrompt.wordCount || 0,
-      qualityScore: insertPrompt.qualityScore || 0,
       userId: insertPrompt.userId || null, // Optional for backward compatibility
     };
     this.prompts.set(id, prompt);
@@ -90,22 +107,86 @@ export class MemStorage implements IStorage {
   }
 
   async getTemplate(id: string): Promise<Template | undefined> {
-    return this.templates.get(id);
+    const template = this.templates.get(id);
+    if (!template) return undefined;
+    
+    // Check if template is default or belongs to the user
+    if (!this.userId) {
+      // Only allow access to default templates for anonymous users
+      return template.isDefault ? template : undefined;
+    }
+    
+    // Allow access to default templates or user's own templates
+    if (template.isDefault || template.userId === this.userId) {
+      return template;
+    }
+    
+    return undefined;
   }
 
   async getTemplates(): Promise<Template[]> {
-    return Array.from(this.templates.values());
+    // Return only default system templates when no user context
+    if (!this.userId) {
+      return Array.from(this.templates.values()).filter(t => t.isDefault);
+    }
+    
+    // Return default templates + user's own templates
+    return Array.from(this.templates.values()).filter(t => 
+      t.isDefault || t.userId === this.userId
+    );
   }
 
   async getTemplatesByType(type: string): Promise<Template[]> {
-    return Array.from(this.templates.values()).filter(template => template.type === type);
+    // Return only default system templates when no user context
+    if (!this.userId) {
+      return Array.from(this.templates.values()).filter(template => 
+        template.type === type && template.isDefault
+      );
+    }
+    
+    // Return default templates + user's own templates of specified type
+    return Array.from(this.templates.values()).filter(template => 
+      template.type === type && (template.isDefault || template.userId === this.userId)
+    );
+  }
+
+  async getUserTemplates(userId: string): Promise<Template[]> {
+    return Array.from(this.templates.values()).filter(template => template.userId === userId);
   }
 
   async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
     const id = randomUUID();
-    const template: Template = { ...insertTemplate, id };
+    const template: Template = { 
+      ...insertTemplate, 
+      id,
+      createdAt: new Date(),
+      isDefault: insertTemplate.isDefault || false,
+      userId: insertTemplate.userId || null
+    };
     this.templates.set(id, template);
     return template;
+  }
+
+  async updateTemplate(id: string, updateTemplate: Partial<InsertTemplate>): Promise<Template | undefined> {
+    const existing = this.templates.get(id);
+    if (!existing) return undefined;
+
+    // Prevent updating default system templates
+    if (existing.isDefault) return undefined;
+
+    const updated: Template = { ...existing, ...updateTemplate };
+    this.templates.set(id, updated);
+    return updated;
+  }
+
+  async deleteTemplate(id: string): Promise<boolean> {
+    const existing = this.templates.get(id);
+    if (!existing) return false;
+
+    // Prevent deleting default system templates
+    if (existing.isDefault) return false;
+
+    return this.templates.delete(id);
   }
 }
 
@@ -116,7 +197,7 @@ export function createStorage(userId?: string): IStorage {
     return new DatabaseStorage(userId);
   }
   // Fall back to in-memory storage for development
-  return new MemStorage();
+  return new MemStorage(userId);
 }
 
 // Export a default storage instance for backward compatibility

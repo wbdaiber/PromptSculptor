@@ -18,6 +18,8 @@ export default function RecentPrompts() {
   const { data: prompts = [], isLoading } = useQuery<Prompt[]>({
     queryKey: ["/api/prompts/recent"],
     queryFn: () => getRecentPrompts(6),
+    staleTime: 0, // Always consider data stale for user-sensitive data
+    gcTime: 0, // Don't keep data in cache after component unmounts
   });
 
   const deleteMutation = useMutation({

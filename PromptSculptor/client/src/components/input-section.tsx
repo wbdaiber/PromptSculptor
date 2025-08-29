@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Clipboard, ArrowRight, AlertCircle, Key, ExternalLink } from "lucide-react";
+import { Trash2, ArrowRight, AlertCircle, Key, ExternalLink, BookmarkPlus, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,12 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { generatePrompt } from "@/lib/api";
+import CreateTemplateDialog from "@/components/create-template-dialog";
 import type { Template, GeneratePromptRequest } from "@shared/schema";
 
 interface GeneratedPromptResult {
   generatedPrompt: string;
   wordCount: number;
-  qualityScore: number;
   title: string;
   promptId?: string | null;
   isDemoMode?: boolean;
@@ -49,11 +50,20 @@ export default function InputSection({
   const [includeExamples, setIncludeExamples] = useState(true);
   const [useXMLTags, setUseXMLTags] = useState(true);
   const [includeConstraints, setIncludeConstraints] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [lastGeneratedResult, setLastGeneratedResult] = useState<GeneratedPromptResult | null>(null);
+  const [showCreateTemplateDialog, setShowCreateTemplateDialog] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, apiKeys } = useAuth();
+
+  // Clear demo state when user authenticates with API keys
+  useEffect(() => {
+    if (user && apiKeys.length > 0 && lastGeneratedResult?.isDemoMode) {
+      setLastGeneratedResult(null);
+    }
+  }, [user, apiKeys.length, lastGeneratedResult?.isDemoMode]);
 
   // Load template sample input when template is selected
   useEffect(() => {
@@ -72,7 +82,7 @@ export default function InputSection({
       if (result.isDemoMode || result.demoInfo?.isDemoMode) {
         toast({
           title: "Demo Prompt Generated",
-          description: "This is a demo-quality prompt. Add your API keys for AI-powered generation.",
+          description: "This is a demo prompt. Add your API keys for AI-powered generation.",
         });
       } else {
         toast({
@@ -140,9 +150,36 @@ export default function InputSection({
     setNaturalLanguageInput("");
   };
 
-  const handlePasteExample = () => {
-    const exampleText = "I need to analyze customer feedback data to identify key themes and sentiment patterns. The analysis should include specific examples and actionable recommendations for improving our product.";
-    setNaturalLanguageInput(exampleText);
+  const handleSaveAsTemplate = () => {
+    if (!naturalLanguageInput.trim()) {
+      toast({
+        title: "Input Required",
+        description: "Please enter your natural language instructions before saving as template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (naturalLanguageInput.length < 10) {
+      toast({
+        title: "Input Too Short",
+        description: "Please provide more detailed instructions (at least 10 characters) to save as template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save templates.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowCreateTemplateDialog(true);
   };
 
   const characterCount = naturalLanguageInput.length;
@@ -151,12 +188,10 @@ export default function InputSection({
   const DemoModeIndicator = () => {
     // Show demo mode indicator if:
     // 1. User is not signed in, OR
-    // 2. User is signed in but has no API keys, OR  
-    // 3. Last generated result was in demo mode
+    // 2. User is signed in but has no API keys
     const shouldShowDemo = 
       !user || 
-      (user && apiKeys.length === 0) ||
-      (lastGeneratedResult && (lastGeneratedResult.isDemoMode || lastGeneratedResult.demoInfo?.isDemoMode));
+      (user && apiKeys.length === 0);
 
     if (!shouldShowDemo) {
       return null;
@@ -170,14 +205,10 @@ export default function InputSection({
       // Not signed in
       demoMessage = "This is a demo prompt showcasing PromptSculptor's capabilities. Sign up to save your prompts and unlock AI-powered generation!";
       callToAction = "Create free account to add your API keys and generate personalized prompts";
-    } else if (apiKeys.length === 0) {
+    } else {
       // Signed in but no API keys
       demoMessage = "You're using template-based demo mode. Add your API keys to unlock AI-powered generation with your preferred models.";
       callToAction = "Add API keys to unlock AI-powered generation";
-    } else {
-      // Use messages from the last generated result (fallback)
-      demoMessage = lastGeneratedResult?.demoMessage || lastGeneratedResult?.demoInfo?.message || "Demo mode active";
-      callToAction = lastGeneratedResult?.callToAction || lastGeneratedResult?.demoInfo?.callToAction || "Add API keys";
     }
 
     return (
@@ -189,7 +220,7 @@ export default function InputSection({
               Demo Mode
             </Badge>
             <span className="text-sm text-orange-800 dark:text-orange-300">
-              Generated using high-quality templates
+              Generated using templates
             </span>
           </div>
           {demoMessage && (
@@ -251,6 +282,83 @@ export default function InputSection({
             className="w-full h-64 resize-none"
             maxLength={5000}
           />
+
+          {/* Advanced Options */}
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <Collapsible open={showAdvancedOptions} onOpenChange={setShowAdvancedOptions}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="flex items-center justify-between w-full p-0 h-auto text-left">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Advanced Options
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showAdvancedOptions ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Target Model</Label>
+                    <Select value={targetModel} onValueChange={setTargetModel}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="claude">Claude (Anthropic)</SelectItem>
+                        <SelectItem value="gpt">GPT (OpenAI)</SelectItem>
+                        <SelectItem value="gemini">Gemini (Google)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Complexity Level</Label>
+                    <Select value={complexityLevel} onValueChange={setComplexityLevel}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simple">Simple</SelectItem>
+                        <SelectItem value="detailed">Detailed</SelectItem>
+                        <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox 
+                      id="includeExamples" 
+                      checked={includeExamples}
+                      onCheckedChange={(checked) => setIncludeExamples(checked === true)}
+                    />
+                    <Label htmlFor="includeExamples" className="text-sm text-slate-700 dark:text-slate-300">
+                      Include examples in prompt
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Checkbox 
+                      id="useXMLTags" 
+                      checked={useXMLTags}
+                      onCheckedChange={(checked) => setUseXMLTags(checked === true)}
+                    />
+                    <Label htmlFor="useXMLTags" className="text-sm text-slate-700 dark:text-slate-300">
+                      Use XML-style tags (Claude optimized)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Checkbox 
+                      id="includeConstraints" 
+                      checked={includeConstraints}
+                      onCheckedChange={(checked) => setIncludeConstraints(checked === true)}
+                    />
+                    <Label htmlFor="includeConstraints" className="text-sm text-slate-700 dark:text-slate-300">
+                      Add constraint sections
+                    </Label>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
           
           {/* Input Tools */}
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
@@ -267,11 +375,12 @@ export default function InputSection({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={handlePasteExample}
+                onClick={handleSaveAsTemplate}
                 className="text-slate-500 hover:text-slate-700"
+                disabled={!naturalLanguageInput.trim()}
               >
-                <Clipboard className="h-3 w-3 mr-1" />
-                Paste Example
+                <BookmarkPlus className="h-3 w-3 mr-1" />
+                Save as Template
               </Button>
             </div>
             <Button 
@@ -286,76 +395,13 @@ export default function InputSection({
         </CardContent>
       </Card>
 
-      {/* Advanced Options */}
-      <Card>
-        <CardHeader className="border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Advanced Options</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Customize the generated prompt structure</p>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Target Model</Label>
-              <Select value={targetModel} onValueChange={setTargetModel}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="claude">Claude (Anthropic)</SelectItem>
-                  <SelectItem value="gpt">GPT (OpenAI)</SelectItem>
-                  <SelectItem value="gemini">Gemini (Google)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Complexity Level</Label>
-              <Select value={complexityLevel} onValueChange={setComplexityLevel}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="simple">Simple</SelectItem>
-                  <SelectItem value="detailed">Detailed</SelectItem>
-                  <SelectItem value="comprehensive">Comprehensive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3">
-              <Checkbox 
-                id="includeExamples" 
-                checked={includeExamples}
-                onCheckedChange={(checked) => setIncludeExamples(checked === true)}
-              />
-              <Label htmlFor="includeExamples" className="text-sm text-slate-700 dark:text-slate-300">
-                Include examples in prompt
-              </Label>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Checkbox 
-                id="useXMLTags" 
-                checked={useXMLTags}
-                onCheckedChange={(checked) => setUseXMLTags(checked === true)}
-              />
-              <Label htmlFor="useXMLTags" className="text-sm text-slate-700 dark:text-slate-300">
-                Use XML-style tags (Claude optimized)
-              </Label>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Checkbox 
-                id="includeConstraints" 
-                checked={includeConstraints}
-                onCheckedChange={(checked) => setIncludeConstraints(checked === true)}
-              />
-              <Label htmlFor="includeConstraints" className="text-sm text-slate-700 dark:text-slate-300">
-                Add constraint sections
-              </Label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
+      {/* Template Creation Dialog */}
+      <CreateTemplateDialog
+        open={showCreateTemplateDialog}
+        onOpenChange={setShowCreateTemplateDialog}
+        initialSampleInput={naturalLanguageInput}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. Updated 08-28-2025.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. Updated 08-29-2025.
 
 ## Development Commands
 
@@ -97,7 +97,14 @@ npm run db:push
 
 **Frontend Components Updated**:
 - **Input Section** (`client/src/components/input-section.tsx`): Demo mode indicators with call-to-action buttons
+  - **Demo Mode Detection**: Only shows when user is unauthenticated OR authenticated without API keys
+  - **State Management**: Auto-clears demo state when users add API keys (no dependency on generation history)
 - **API Key Manager** (`client/src/components/settings/ApiKeyManager.tsx`): Service status dashboard and onboarding guidance
+- **Template System** (`client/src/components/template-dropdown.tsx`): **NEW COMPONENT - Aug 29, 2025**
+  - **Left Sidebar Layout**: Templates moved from horizontal grid to collapsible left sidebar dropdown
+  - **Space Optimization**: Reclaimed 200+ pixels of vertical space for better content visibility
+  - **Responsive Design**: Desktop sidebar with mobile/tablet dropdown fallback
+  - **Enhanced UX**: Auto-collapse on mobile after selection, selected template indicator
 
 **Testing Status**: All user flows validated (unauthenticated users, authenticated users with/without keys, error scenarios)
 
@@ -111,8 +118,32 @@ npm run db:push
 - ✅ **API Key Management**: Encrypted storage with user-specific retrieval
 - ✅ **Performance Optimization**: Caching system for API clients and demo responses
 
+### Recent Critical Fixes & UX Improvements (Aug 2025)
+
+**Authentication & Cache Management**:
+- **Template Cache Isolation**: Fixed React Query cache persistence causing authenticated user templates to appear in demo mode after logout
+  - Modified `client/src/lib/queryClient.ts`: Changed `staleTime: Infinity` → `staleTime: 0` for proper cache invalidation
+  - Enhanced `client/src/context/AuthContext.tsx`: Added aggressive cache clearing with `queryClient.removeQueries()` on logout
+  - Updated `client/src/pages/home.tsx`: Added authentication state to template query keys for proper cache scoping
+- **Session Authentication**: Fixed authentication validation in protected routes to check both `req.user` and `req.userId`
+  - Updated `server/routes.ts`: Fixed template/prompt creation/modification endpoints authentication logic
+
+**UX Architecture Redesign (Aug 29, 2025)**:
+- **Template Interface Transformation**: Completely restructured template presentation from horizontal grid to sidebar dropdown
+  - **New Layout**: `client/src/pages/home.tsx` now uses flex layout with 320px fixed left sidebar on desktop
+  - **Component Architecture**: Created `client/src/components/template-dropdown.tsx` using Radix UI Collapsible primitives
+  - **Space Efficiency**: Freed up 200+ pixels of vertical space, improving content visibility and reducing scroll requirements
+  - **Responsive Strategy**: Desktop sticky sidebar, mobile/tablet collapsible dropdown with auto-close behavior
+  - **Preserved Functionality**: All existing template selection, editing, and deletion features maintained
+- **Advanced Options Integration**: Streamlined UI by consolidating advanced options into collapsible section
+  - **Unified Interface**: `client/src/components/input-section.tsx` now contains integrated advanced options within Natural Language Input card
+  - **Progressive Disclosure**: Advanced options (target model, complexity, examples, XML tags, constraints) accessible via expandable section
+  - **Improved UX**: Reduced visual clutter while maintaining full functionality with smooth animation transitions
+  - **Component Consolidation**: Eliminated separate Advanced Options card, creating more cohesive single-card interface
+
 ### Development Notes
 - **Environment Variables**: `.env` API keys are now optional and primarily for admin/testing
 - **User API Keys**: Primary generation method - stored encrypted in PostgreSQL with AES-256-GCM
 - **Demo Mode**: High-quality template-based prompts with NLP keyword extraction
 - **Error Handling**: API key failures gracefully fallback to demo mode with appropriate messaging
+- **Cache Management**: React Query configured for immediate invalidation of user-sensitive data with proper authentication state dependency

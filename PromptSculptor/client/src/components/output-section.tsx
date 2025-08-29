@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Download, RotateCcw, Edit, Check, AlertCircle } from "lucide-react";
+import { Copy, Download, RotateCcw, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,21 +52,6 @@ export default function OutputSection({ generatedResult, isGenerating }: OutputS
     });
   };
 
-  const getQualityIndicators = () => {
-    if (!generatedResult) return [];
-    
-    const indicators = [
-      { label: "Clear role definition", status: "success" },
-      { label: "Structured sections", status: "success" },
-      { label: "XML tags for Claude", status: "success" },
-    ];
-    
-    if (generatedResult.qualityScore < 85) {
-      indicators.push({ label: "Could include more examples", status: "warning" });
-    }
-    
-    return indicators;
-  };
 
   if (isGenerating) {
     return (
@@ -210,7 +195,6 @@ export default function OutputSection({ generatedResult, isGenerating }: OutputS
               </Button>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline">Save as Template</Button>
               <Button 
                 onClick={handleCopyToClipboard}
                 className="bg-emerald-600 hover:bg-emerald-700"
@@ -223,45 +207,6 @@ export default function OutputSection({ generatedResult, isGenerating }: OutputS
         </CardContent>
       </Card>
 
-      {/* Stats and Tips */}
-      <Card>
-        <CardHeader className="border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Prompt Quality</h3>
-          <p className="text-sm text-slate-500 mt-1">Analysis of the generated prompt structure</p>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {generatedResult.wordCount || 0}
-              </div>
-              <div className="text-sm text-slate-500">Words</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-emerald-600">
-                {generatedResult.qualityScore || 0}
-              </div>
-              <div className="text-sm text-slate-500">Quality Score</div>
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            {getQualityIndicators().map((indicator, index) => (
-              <div key={index} className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  indicator.status === 'success' ? 'bg-emerald-500' : 'bg-amber-400'
-                }`}></div>
-                <span className="text-sm text-slate-700">{indicator.label}</span>
-                {indicator.status === 'success' ? (
-                  <Check className="h-3 w-3 text-emerald-500 ml-auto" />
-                ) : (
-                  <AlertCircle className="h-3 w-3 text-amber-500 ml-auto" />
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

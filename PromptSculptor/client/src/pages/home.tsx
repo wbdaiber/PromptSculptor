@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { HelpCircle, Settings, User, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import TemplateCard from "@/components/template-card";
 import InputSection from "@/components/input-section";
 import OutputSection from "@/components/output-section";
 import RecentPrompts from "@/components/recent-prompts";
@@ -10,6 +9,9 @@ import ThemeToggle from "@/components/theme-toggle";
 import { AuthModal } from "@/components/auth";
 import { useAuth } from "@/context/AuthContext";
 import SettingsDropdown from "@/components/settings-dropdown";
+import EditTemplateDialog from "@/components/edit-template-dialog";
+import DeleteTemplateDialog from "@/components/delete-template-dialog";
+import TemplateDropdown from "@/components/template-dropdown";
 import { getTemplates } from "@/lib/api";
 import type { Template } from "../../../shared/schema";
 
@@ -19,6 +21,8 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalDefaultView, setAuthModalDefaultView] = useState<'login' | 'signup'>('login');
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
 
   const { user, loading } = useAuth();
 
@@ -52,8 +56,10 @@ export default function Home() {
   }, []);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<Template[]>({
-    queryKey: ["/api/templates"],
+    queryKey: ["/api/templates", user?.id || 'anonymous'], // Include auth state in query key
     queryFn: () => getTemplates(),
+    staleTime: 0, // Always consider data stale for user-sensitive data
+    gcTime: 0, // Don't keep data in cache after component unmounts
   });
 
   const handleTemplateSelect = (template: Template) => {
@@ -63,6 +69,14 @@ export default function Home() {
   const handlePromptGenerated = (result: any) => {
     setGeneratedResult(result);
     setIsGenerating(false);
+  };
+
+  const handleTemplateEdit = (template: Template) => {
+    setEditingTemplate(template);
+  };
+
+  const handleTemplateDelete = (template: Template) => {
+    setDeletingTemplate(template);
   };
 
   return (
@@ -116,47 +130,53 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Start Templates */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Quick Start Templates</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {templatesLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 animate-pulse transition-colors duration-200">
-                  <div className="h-8 w-8 bg-slate-200 rounded-lg mb-2"></div>
-                  <div className="h-4 bg-slate-200 rounded mb-2"></div>
-                  <div className="h-3 bg-slate-200 rounded"></div>
-                </div>
-              ))
-            ) : (
-              templates.map((template) => (
-                <TemplateCard
-                  key={template.id}
-                  template={template}
-                  onSelect={handleTemplateSelect}
-                  isSelected={selectedTemplate?.id === template.id}
-                />
-              ))
-            )}
+        <div className="flex gap-8">
+          {/* Left Sidebar - Templates */}
+          <div className="hidden lg:block lg:w-80 flex-shrink-0">
+            <div className="sticky top-24 space-y-4">
+              <TemplateDropdown
+                templates={templates}
+                selectedTemplate={selectedTemplate}
+                onSelect={handleTemplateSelect}
+                onEdit={handleTemplateEdit}
+                onDelete={handleTemplateDelete}
+                isLoading={templatesLoading}
+              />
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0">
+            {/* Mobile Template Dropdown - Only visible on mobile/tablet */}
+            <div className="lg:hidden mb-8">
+              <TemplateDropdown
+                templates={templates}
+                selectedTemplate={selectedTemplate}
+                onSelect={handleTemplateSelect}
+                onEdit={handleTemplateEdit}
+                onDelete={handleTemplateDelete}
+                isLoading={templatesLoading}
+              />
+            </div>
+
+            {/* Main Interface */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              <InputSection
+                selectedTemplate={selectedTemplate}
+                onPromptGenerated={handlePromptGenerated}
+                isGenerating={isGenerating}
+                setIsGenerating={setIsGenerating}
+              />
+              <OutputSection
+                generatedResult={generatedResult}
+                isGenerating={isGenerating}
+              />
+            </div>
+
+            {/* Recent Prompts - Only show for authenticated users */}
+            {user && <RecentPrompts />}
           </div>
         </div>
-
-        {/* Main Interface */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <InputSection
-            selectedTemplate={selectedTemplate}
-            onPromptGenerated={handlePromptGenerated}
-            isGenerating={isGenerating}
-            setIsGenerating={setIsGenerating}
-          />
-          <OutputSection
-            generatedResult={generatedResult}
-            isGenerating={isGenerating}
-          />
-        </div>
-
-        {/* Recent Prompts */}
-        <RecentPrompts />
       </main>
 
       {/* Footer */}
@@ -180,6 +200,18 @@ export default function Home() {
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)}
         defaultView={authModalDefaultView}
+      />
+
+      {/* Template Management Dialogs */}
+      <EditTemplateDialog
+        open={!!editingTemplate}
+        onOpenChange={(open) => !open && setEditingTemplate(null)}
+        template={editingTemplate}
+      />
+      <DeleteTemplateDialog
+        open={!!deletingTemplate}
+        onOpenChange={(open) => !open && setDeletingTemplate(null)}
+        template={deletingTemplate}
       />
     </div>
   );

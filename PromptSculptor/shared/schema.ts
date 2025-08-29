@@ -35,7 +35,6 @@ export const prompts = pgTable("prompts", {
   useXMLTags: boolean("use_xml_tags").notNull().default(true),
   includeConstraints: boolean("include_constraints").notNull().default(false),
   wordCount: integer("word_count").notNull().default(0),
-  qualityScore: integer("quality_score").notNull().default(0),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // Optional for backward compatibility
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -49,6 +48,9 @@ export const templates = pgTable("templates", {
   iconColor: text("icon_color").notNull(), // Tailwind color class
   sampleInput: text("sample_input").notNull(),
   promptStructure: jsonb("prompt_structure").notNull(), // JSON structure for prompt generation
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // null for default system templates
+  isDefault: boolean("is_default").notNull().default(false), // true for system templates
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Zod schemas for database operations
@@ -70,6 +72,7 @@ export const insertPromptSchema = createInsertSchema(prompts).omit({
 
 export const insertTemplateSchema = createInsertSchema(templates).omit({
   id: true,
+  createdAt: true,
 });
 
 // TypeScript types

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { createStorage } from "./storage";
 import { generateStructuredPrompt, type UserContext } from "./services/promptGenerator";
 import { DatabaseStorage } from "./databaseStorage";
-import { generatePromptRequestSchema, insertPromptSchema } from "../shared/schema.js";
+import { generatePromptRequestSchema, insertPromptSchema, insertTemplateSchema } from "../shared/schema.js";
 import { z } from "zod";
 import { requireApiKey, optionalApiKey, getAuthStatus } from "./middleware/basicAuth";
 import { aiLimiter, modificationLimiter } from "./middleware/rateLimiter";
@@ -28,28 +28,216 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Get all templates - templates are global, no user context needed
-  app.get("/api/templates", async (_req, res) => {
+  // Get all templates - filtered by user context
+  app.get("/api/templates", extractUserId, async (req, res) => {
     try {
-      const globalStorage = createStorage(); // No userId for templates
-      const templates = await globalStorage.getTemplates();
+      // Set no-cache headers to prevent browser caching of user data
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      });
+      
+      const userStorage = createStorage(req.userId); // Pass user context for proper filtering
+      const templates = await userStorage.getTemplates();
       res.json(templates);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch templates" });
     }
   });
 
-  // Get template by ID
-  app.get("/api/templates/:id", async (req, res) => {
+  // Get template by ID - filtered by user context
+  app.get("/api/templates/:id", extractUserId, async (req, res) => {
     try {
-      const globalStorage = createStorage(); // No userId for templates
-      const template = await globalStorage.getTemplate(req.params.id);
+      const userStorage = createStorage(req.userId); // Pass user context for proper filtering
+      const template = await userStorage.getTemplate(req.params.id);
       if (!template) {
-        return res.status(404).json({ message: "Template not found" });
+        return res.status(404).json({ message: "Template not found or access denied" });
       }
       res.json(template);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch template" });
+    }
+  });
+
+  // Create template - PROTECTED: Requires authentication
+  app.post("/api/templates", modificationLimiter, extractUserId, async (req, res) => {
+    // Allow both API key authentication and session-based authentication
+    const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
+    const isSessionAuth = req.user && req.userId; // Check both req.user and req.userId
+    
+    if (!isApiKeyAuth && !isSessionAuth) {
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        message: 'Please log in to create templates'
+      });
+    }
+    
+    // Validate API key if provided (for external API access)
+    if (isApiKeyAuth && !isSessionAuth) {
+      return requireApiKey(req, res, async () => {
+        try {
+          // Validate and sanitize the template data
+          const templateData = insertTemplateSchema.parse({
+            ...req.body,
+            name: sanitizeTitle(req.body.name || 'Custom Template', 100),
+            description: sanitizeOutput(req.body.description || '', 500),
+            sampleInput: sanitizeOutput(req.body.sampleInput || '', 5000),
+            userId: req.userId || null,
+            isDefault: false, // User-created templates are never default
+          });
+
+          const userStorage = createStorage(req.userId);
+          const newTemplate = await userStorage.createTemplate(templateData);
+          res.status(201).json(newTemplate);
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return res.status(400).json({ 
+              error: "Invalid template data",
+              details: error.errors
+            });
+          }
+          res.status(500).json({ message: "Failed to create template" });
+        }
+      });
+    }
+    
+    // For session-based authentication, proceed directly
+    try {
+      // Validate and sanitize the template data
+      const templateData = insertTemplateSchema.parse({
+        ...req.body,
+        name: sanitizeTitle(req.body.name || 'Custom Template', 100),
+        description: sanitizeOutput(req.body.description || '', 500),
+        sampleInput: sanitizeOutput(req.body.sampleInput || '', 5000),
+        userId: req.userId || null,
+        isDefault: false, // User-created templates are never default
+      });
+
+      const userStorage = createStorage(req.userId);
+      const newTemplate = await userStorage.createTemplate(templateData);
+      res.status(201).json(newTemplate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid template data",
+          details: error.errors
+        });
+      }
+      res.status(500).json({ message: "Failed to create template" });
+    }
+  });
+
+  // Update template - PROTECTED: Requires authentication and ownership
+  app.put("/api/templates/:id", modificationLimiter, extractUserId, async (req, res) => {
+    // Allow both API key authentication and session-based authentication
+    const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
+    const isSessionAuth = req.user && req.userId; // Check both req.user and req.userId
+    
+    if (!isApiKeyAuth && !isSessionAuth) {
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        message: 'Please log in to update templates'
+      });
+    }
+
+    // Validate API key if provided (for external API access)
+    if (isApiKeyAuth && !isSessionAuth) {
+      return requireApiKey(req, res, async () => {
+        try {
+          // Validate and sanitize the template data
+          const templateData = insertTemplateSchema.partial().parse({
+            ...req.body,
+            name: req.body.name ? sanitizeTitle(req.body.name, 100) : undefined,
+            description: req.body.description ? sanitizeOutput(req.body.description, 500) : undefined,
+            sampleInput: req.body.sampleInput ? sanitizeOutput(req.body.sampleInput, 5000) : undefined,
+          });
+
+          const userStorage = createStorage(req.userId);
+          const updatedTemplate = await userStorage.updateTemplate(req.params.id, templateData);
+          if (!updatedTemplate) {
+            return res.status(404).json({ message: "Template not found or cannot be updated" });
+          }
+          res.json(updatedTemplate);
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return res.status(400).json({ 
+              error: "Invalid template data",
+              details: error.errors
+            });
+          }
+          res.status(500).json({ message: "Failed to update template" });
+        }
+      });
+    }
+
+    // For session-based authentication, proceed directly
+    try {
+      // Validate and sanitize the template data
+      const templateData = insertTemplateSchema.partial().parse({
+        ...req.body,
+        name: req.body.name ? sanitizeTitle(req.body.name, 100) : undefined,
+        description: req.body.description ? sanitizeOutput(req.body.description, 500) : undefined,
+        sampleInput: req.body.sampleInput ? sanitizeOutput(req.body.sampleInput, 5000) : undefined,
+      });
+
+      const userStorage = createStorage(req.userId);
+      const updatedTemplate = await userStorage.updateTemplate(req.params.id, templateData);
+      if (!updatedTemplate) {
+        return res.status(404).json({ message: "Template not found or cannot be updated" });
+      }
+      res.json(updatedTemplate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid template data",
+          details: error.errors
+        });
+      }
+      res.status(500).json({ message: "Failed to update template" });
+    }
+  });
+
+  // Delete template - PROTECTED: Requires authentication and ownership
+  app.delete("/api/templates/:id", modificationLimiter, extractUserId, async (req, res) => {
+    // Allow both API key authentication and session-based authentication
+    const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
+    const isSessionAuth = req.user && req.userId; // Check both req.user and req.userId
+    
+    if (!isApiKeyAuth && !isSessionAuth) {
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        message: 'Please log in to delete templates'
+      });
+    }
+
+    // Validate API key if provided (for external API access)
+    if (isApiKeyAuth && !isSessionAuth) {
+      return requireApiKey(req, res, async () => {
+        try {
+          const userStorage = createStorage(req.userId);
+          const deleted = await userStorage.deleteTemplate(req.params.id);
+          if (!deleted) {
+            return res.status(404).json({ message: "Template not found or cannot be deleted" });
+          }
+          res.json({ message: "Template deleted successfully" });
+        } catch (error) {
+          res.status(500).json({ message: "Failed to delete template" });
+        }
+      });
+    }
+
+    // For session-based authentication, proceed directly
+    try {
+      const userStorage = createStorage(req.userId);
+      const deleted = await userStorage.deleteTemplate(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Template not found or cannot be deleted" });
+      }
+      res.json({ message: "Template deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete template" });
     }
   });
 
@@ -92,7 +280,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           useXMLTags: sanitizedRequest.useXMLTags,
           includeConstraints: sanitizedRequest.includeConstraints,
           wordCount: Math.min(Math.max(result.wordCount || 0, 0), 50000), // Clamp word count
-          qualityScore: Math.min(Math.max(result.qualityScore || 0, 0), 100), // Clamp quality score
           userId: req.userId || null, // Associate with user if authenticated
         });
 
@@ -154,6 +341,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/prompts/recent", extractUserId, async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      // Set no-cache headers to prevent browser caching of user data
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      });
+      
+      // Only return prompts if user is authenticated
+      if (!req.userId) {
+        return res.json([]); // Return empty array for unauthenticated users
+      }
+      
       const userStorage = createStorage(req.userId);
       const prompts = await userStorage.getRecentPrompts(limit);
       res.json(prompts);
@@ -165,6 +366,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all prompts - user-specific with optional authentication
   app.get("/api/prompts", extractUserId, async (req, res) => {
     try {
+      // Set no-cache headers to prevent browser caching of user data
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      });
+      
+      // Only return prompts if user is authenticated
+      if (!req.userId) {
+        return res.json([]); // Return empty array for unauthenticated users
+      }
+      
       const userStorage = createStorage(req.userId);
       const prompts = await userStorage.getPrompts();
       res.json(prompts);
@@ -192,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Allow both API key authentication and session-based authentication
     const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
-    const isSessionAuth = req.user;
+    const isSessionAuth = req.user && req.userId; // Check both req.user and req.userId
     
     if (!isApiKeyAuth && !isSessionAuth) {
       return res.status(401).json({ 
@@ -213,7 +427,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             naturalLanguageInput: updateFields.naturalLanguageInput ? sanitizePromptRequest({ naturalLanguageInput: updateFields.naturalLanguageInput } as any).naturalLanguageInput : updateFields.naturalLanguageInput,
             generatedPrompt: updateFields.generatedPrompt ? sanitizeOutput(updateFields.generatedPrompt, 50000) : updateFields.generatedPrompt,
             wordCount: updateFields.wordCount ? Math.min(Math.max(updateFields.wordCount, 0), 50000) : updateFields.wordCount,
-            qualityScore: updateFields.qualityScore ? Math.min(Math.max(updateFields.qualityScore, 0), 100) : updateFields.qualityScore,
           };
 
           const userStorage = createStorage(req.userId);
@@ -244,7 +457,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         naturalLanguageInput: updateFields.naturalLanguageInput ? sanitizePromptRequest({ naturalLanguageInput: updateFields.naturalLanguageInput } as any).naturalLanguageInput : updateFields.naturalLanguageInput,
         generatedPrompt: updateFields.generatedPrompt ? sanitizeOutput(updateFields.generatedPrompt, 50000) : updateFields.generatedPrompt,
         wordCount: updateFields.wordCount ? Math.min(Math.max(updateFields.wordCount, 0), 50000) : updateFields.wordCount,
-        qualityScore: updateFields.qualityScore ? Math.min(Math.max(updateFields.qualityScore, 0), 100) : updateFields.qualityScore,
       };
 
       const userStorage = createStorage(req.userId);
@@ -268,7 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/prompts/:id", modificationLimiter, extractUserId, async (req, res) => {
     // Allow both API key authentication and session-based authentication
     const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
-    const isSessionAuth = req.user;
+    const isSessionAuth = req.user && req.userId; // Check both req.user and req.userId
     
     if (!isApiKeyAuth && !isSessionAuth) {
       return res.status(401).json({ 

@@ -26,7 +26,6 @@ const DEFAULT_MODEL_STR = "claude-sonnet-4-20250514";
 export interface GeneratedPromptResult {
   generatedPrompt: string;
   wordCount: number;
-  qualityScore: number;
   title: string;
   isDemoMode?: boolean;
   demoMessage?: string;
@@ -224,8 +223,7 @@ ${request.useXMLTags ? '</output_format>' : ''}`
   return {
     generatedPrompt: template,
     title: `${request.templateType.charAt(0).toUpperCase() + request.templateType.slice(1)} Prompt`,
-    wordCount,
-    qualityScore: 85
+    wordCount
   };
 }
 
@@ -464,8 +462,7 @@ ${request.includeConstraints ? '- Add specific constraints and limitations.' : '
     return {
       generatedPrompt: result.generatedPrompt,
       title: result.title || "Claude Generated Prompt",
-      wordCount,
-      qualityScore: 88 // Calculate quality score based on prompt structure
+      wordCount
     };
   } catch (error) {
     // SECURE: Log errors safely without exposing sensitive details
@@ -552,7 +549,6 @@ ${request.includeConstraints ? 'Add specific constraints and limitations.' : ''}
       generatedPrompt: result.generatedPrompt,
       title: result.title || "Generated Prompt",
       wordCount,
-      qualityScore: 85 // Calculate quality score based on prompt structure
     };
   } catch (error) {
     // SECURE: Log errors safely without exposing sensitive details
@@ -681,7 +677,6 @@ Remember to output only valid JSON with the exact format specified above.`;
       generatedPrompt: parsedResult.generatedPrompt,
       title: parsedResult.title || "Gemini Generated Prompt",
       wordCount,
-      qualityScore: 87 // Calculate quality score based on prompt structure
     };
   } catch (error) {
     // SECURE: Log errors safely without exposing sensitive details

@@ -11,6 +11,39 @@ export async function getTemplates(): Promise<Template[]> {
   return response.json();
 }
 
+export async function createTemplate(templateData: {
+  name: string;
+  type: string;
+  description: string;
+  icon: string;
+  iconColor: string;
+  sampleInput: string;
+  promptStructure: any;
+  userId?: string;
+  isDefault?: boolean;
+}): Promise<Template> {
+  const response = await apiRequest("POST", "/api/templates", templateData);
+  return response.json();
+}
+
+export async function updateTemplate(id: string, templateData: {
+  name?: string;
+  type?: string;
+  description?: string;
+  icon?: string;
+  iconColor?: string;
+  sampleInput?: string;
+  promptStructure?: any;
+}): Promise<Template> {
+  const response = await apiRequest("PUT", `/api/templates/${id}`, templateData);
+  return response.json();
+}
+
+export async function deleteTemplate(id: string) {
+  const response = await apiRequest("DELETE", `/api/templates/${id}`);
+  return response.json();
+}
+
 export async function getRecentPrompts(limit?: number): Promise<Prompt[]> {
   const url = limit ? `/api/prompts/recent?limit=${limit}` : "/api/prompts/recent";
   const response = await apiRequest("GET", url);
