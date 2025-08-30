@@ -6,6 +6,7 @@ import { z } from "zod";
 // User table for authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 50 }).notNull().unique(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -35,6 +36,7 @@ export const prompts = pgTable("prompts", {
   useXMLTags: boolean("use_xml_tags").notNull().default(true),
   includeConstraints: boolean("include_constraints").notNull().default(false),
   wordCount: integer("word_count").notNull().default(0),
+  isFavorite: boolean("is_favorite").notNull().default(false),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // Optional for backward compatibility
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

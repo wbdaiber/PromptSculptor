@@ -12,6 +12,11 @@ import { useAuth } from '@/context/AuthContext';
 import { Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
 
 const signupSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username must be at most 30 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens'),
   email: z.string().email('Please enter a valid email address'),
   password: z
     .string()
@@ -81,7 +86,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
     setError(null);
 
     try {
-      await signup(data.email, data.password);
+      await signup(data.username, data.email, data.password);
       // Signup successful - AuthContext will handle user state update
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
@@ -103,6 +108,21 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="Choose a username"
+              {...register('username')}
+              className={errors.username ? 'border-red-500' : ''}
+              disabled={isLoading}
+            />
+            {errors.username && (
+              <p className="text-sm text-red-500">{errors.username.message}</p>
+            )}
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>

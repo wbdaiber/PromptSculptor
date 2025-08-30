@@ -130,6 +130,91 @@ npm run db:push
 - ✅ **API Key Management**: Encrypted storage with user-specific retrieval
 - ✅ **Performance Optimization**: Caching system for API clients and demo responses
 - ✅ **Help & Onboarding**: Interactive help modal with comprehensive user guidance
+- ✅ **Favorite Prompts System**: Complete CRUD operations for user's favorite prompts
+
+### Favorite Prompts System Architecture (Aug 2025)
+
+**Complete Implementation**: User-centric favorites system with full CRUD operations and real-time synchronization.
+
+**Backend Components**:
+- **Database Schema** (`shared/schema.ts`): Added `isFavorite: boolean("is_favorite").notNull().default(false)` to prompts table
+- **Storage Layer** (`server/storage.ts`, `server/databaseStorage.ts`): 
+  - `getFavoritePrompts(limit?: number)` - Retrieves user's favorited prompts
+  - `togglePromptFavorite(id: string, isFavorite: boolean)` - Updates favorite status with user scoping
+- **API Endpoints** (`server/routes.ts`):
+  - `GET /api/prompts/favorites` - Protected endpoint for user's favorites (lines 366-393)
+  - `PATCH /api/prompts/:id/favorite` - Protected toggle endpoint (lines 395-433)
+  - Full authentication validation and error handling
+
+**Frontend Components**:
+- **FavoritePrompts** (`client/src/components/favorite-prompts.tsx`): **NEW COMPONENT - Aug 30, 2025**
+  - Dedicated section displaying user's favorited prompts below Recent Prompts (limited to 6)
+  - "View All" navigation to dedicated favorites dashboard
+  - Grid layout with visual distinction (yellow border, filled heart icon)
+  - Complete CRUD operations: view, copy, edit, delete, unfavorite
+  - Optimistic updates with proper error handling and rollback
+- **Favorites Dashboard** (`client/src/pages/favorites.tsx`): **NEW PAGE - Aug 30, 2025**
+  - Dedicated `/favorites` route showing unlimited favorites with full dashboard
+  - Authentication-protected with automatic redirect to home for non-authenticated users
+  - Complete favorites management with empty state and responsive 4-column grid
+- **FavoritePromptCard** (`client/src/components/favorite-prompt-card.tsx`): **NEW SHARED COMPONENT - Aug 30, 2025**
+  - Reusable card component with complete CRUD operations
+  - Shared between home page preview and full favorites dashboard
+- **Enhanced Recent Prompts** (`client/src/components/recent-prompts.tsx`):
+  - Added heart icon toggle to each prompt card
+  - Real-time favorite status synchronization across components
+  - Visual feedback: filled yellow heart for favorites, outline for regular prompts
+- **Output Section Integration** (`client/src/components/output-section.tsx`):
+  - Replaced non-functional "Regenerate" button with "Save to Favorites"
+  - Authentication-aware functionality with appropriate error messaging
+  - Toast notifications for user feedback
+
+**API Client Layer** (`client/src/lib/api.ts`):
+- `getFavoritePrompts(limit?: number)` - Fetches user's favorites with caching
+- `togglePromptFavorite(id: string, isFavorite: boolean)` - Toggle operation with proper typing
+
+**Key Features**:
+- **User Scoping**: All operations properly scoped to authenticated user's data
+- **Real-time Updates**: Changes immediately reflect across Recent Prompts and Favorites sections
+- **Optimistic UI**: Instant visual feedback with graceful error recovery
+- **Data Persistence**: Favorite status persists across sessions with database storage
+- **Authentication Integration**: Only available to logged-in users with session validation
+- **Performance**: Efficient queries with proper indexing and caching strategies
+- **Unlimited Storage**: No limit on favorite prompts saved, with display limits for UI performance
+- **Navigation**: Wouter routing integration with `/favorites` route for dedicated dashboard view
+
+### Recent Prompts Full Dashboard (Aug 30, 2025)
+
+**Complete Implementation**: Recent prompts "View All" functionality following the favorites pattern.
+
+**Frontend Components**:
+- **Recent Prompts** (`client/src/components/recent-prompts.tsx`): **UPDATED - Aug 30, 2025**
+  - Added navigation functionality to "View All" button using `useLocation` hook
+  - Button now navigates to `/recent` route for dedicated dashboard view
+  - Home page preview maintains existing 6-prompt limit and visual design
+- **Recent Dashboard** (`client/src/pages/recent.tsx`): **NEW PAGE - Aug 30, 2025**
+  - Dedicated `/recent` route showing up to 20 recent prompts (vs 6 on home)
+  - Authentication-protected with automatic redirect to home for non-authenticated users
+  - Complete recent prompts management with empty state and responsive 4-column grid
+  - Same header/layout pattern as favorites page for consistency
+- **RecentPromptCard** (`client/src/components/recent-prompt-card.tsx`): **NEW SHARED COMPONENT - Aug 30, 2025**
+  - Reusable card component for the full recent prompts dashboard
+  - Complete CRUD operations: view, copy, edit, delete, favorite toggle
+  - Consistent design with home page recent prompts cards
+  - Real-time favorite status synchronization with other components
+
+**API Integration**:
+- Leverages existing `getRecentPrompts(limit)` function with 20-prompt limit for dashboard
+- Maintains 6-prompt limit for home page preview section
+- Full cache management and optimistic UI updates
+
+**Key Features**:
+- **Limit Management**: Home preview (6 prompts) vs Dashboard (20 prompts)
+- **User Scoping**: All operations properly scoped to authenticated user's data
+- **Real-time Updates**: Changes immediately reflect across Recent and Favorites sections
+- **Authentication Integration**: Protected route with session validation
+- **Performance**: Efficient queries with proper caching strategies
+- **Navigation**: Wouter routing integration with `/recent` route
 
 ### Recent Critical Fixes & UX Improvements (Aug 2025)
 
@@ -157,9 +242,77 @@ npm run db:push
   - **Improved UX**: Reduced visual clutter while maintaining full functionality with smooth animation transitions
   - **Component Consolidation**: Eliminated separate Advanced Options card, creating more cohesive single-card interface
 
+### User Profile Management System (Aug 30, 2025)
+
+**Complete Redesign**: Streamlined profile interface focusing on core account management with password and account deletion capabilities.
+
+**Backend Implementation**:
+- **Password Management** (`server/databaseStorage.ts`): Added `updateUserPassword()` and `deleteUser()` methods with bcrypt verification
+- **Authentication Routes** (`server/routes/auth.ts`): New endpoints `PATCH /auth/change-password` and `DELETE /auth/account` with Zod validation
+- **API Client** (`client/src/lib/api.ts`): Added `changePassword()` and `deleteAccount()` functions
+- **Auth Context** (`client/src/context/AuthContext.tsx`): Extended with password/account management methods
+
+**Frontend Components**:
+- **UserProfile** (`client/src/components/settings/UserProfile.tsx`): **REDESIGNED - Aug 30, 2025**
+  - **Simplified Layout**: Removed account stats, security features, and member info sections
+  - **Core Information**: Displays email, username, and masked password with view toggle
+  - **Interactive Controls**: Change password button and delete account in Account Actions
+  - **Clean Interface**: Focused on essential account management without verbose information
+- **ChangePasswordDialog** (`client/src/components/settings/ChangePasswordDialog.tsx`): **NEW COMPONENT - Aug 30, 2025**
+  - **Secure Workflow**: Current password verification with new password confirmation
+  - **User Experience**: Password visibility toggles, client-side validation, and loading states
+  - **Error Handling**: Comprehensive validation with user-friendly error messages
+- **DeleteAccountDialog** (`client/src/components/settings/DeleteAccountDialog.tsx`): **NEW COMPONENT - Aug 30, 2025**
+  - **Destructive Action Protection**: Password confirmation and explicit data loss warnings
+  - **Comprehensive Warnings**: Details what data will be permanently deleted
+  - **Multi-step Confirmation**: Password + checkbox confirmation for permanent deletion
+
+**Key Features**:
+- **Security First**: All operations require password verification with input sanitization
+- **User Experience**: Toast notifications, loading states, and progressive disclosure
+- **Data Protection**: Comprehensive warnings and confirmations for destructive actions
+- **Session Management**: Proper logout and cache clearing after account deletion
+
+### Toast Notification System
+
+**Implementation**: Uses shadcn/ui toast system with custom hook pattern for user feedback.
+
+**Usage Pattern**:
+```typescript
+import { useToast } from '@/hooks/use-toast';
+
+const { toast } = useToast();
+
+// Success notification
+toast({
+  title: "Success",
+  description: "Operation completed successfully!",
+});
+
+// Error notification  
+toast({
+  title: "Error", 
+  description: "Something went wrong. Please try again.",
+  variant: "destructive",
+});
+```
+
+**Components**: 
+- **Hook**: `client/src/hooks/use-toast.ts` - Custom hook for toast state management
+- **UI Component**: `client/src/components/ui/toast.tsx` - Radix UI toast primitive wrapper
+- **Toaster**: `client/src/components/ui/toaster.tsx` - Toast container component
+- **Integration**: Used throughout app for user feedback (form submissions, API responses, etc.)
+
+**Toast System Features**:
+- **Auto-dismiss**: Configurable timeout with manual dismiss option
+- **Queue Management**: Multiple toasts with proper stacking and removal
+- **Variants**: Success, error, warning, and default styles
+- **Accessibility**: Screen reader friendly with proper ARIA attributes
+
 ### Development Notes
 - **Environment Variables**: `.env` API keys are now optional and primarily for admin/testing
 - **User API Keys**: Primary generation method - stored encrypted in PostgreSQL with AES-256-GCM
 - **Demo Mode**: High-quality template-based prompts with NLP keyword extraction
 - **Error Handling**: API key failures gracefully fallback to demo mode with appropriate messaging
 - **Cache Management**: React Query configured for immediate invalidation of user-sensitive data with proper authentication state dependency
+- **Toast Notifications**: All user-facing operations provide feedback through the toast system

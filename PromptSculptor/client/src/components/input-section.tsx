@@ -46,7 +46,7 @@ export default function InputSection({
   const [targetModel, setTargetModel] = useState<string>("claude");
   const [complexityLevel, setComplexityLevel] = useState<string>("detailed");
   const [includeExamples, setIncludeExamples] = useState(true);
-  const [useXMLTags, setUseXMLTags] = useState(true);
+  const [useXMLTags, setUseXMLTags] = useState(false);
   const [includeConstraints, setIncludeConstraints] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [lastGeneratedResult, setLastGeneratedResult] = useState<GeneratedPromptResult | null>(null);
@@ -283,7 +283,7 @@ export default function InputSection({
                       onCheckedChange={(checked) => setUseXMLTags(checked === true)}
                     />
                     <Label htmlFor="useXMLTags" className="text-sm text-slate-700 dark:text-slate-300">
-                      Use XML-style tags (Claude optimized)
+                      Use XML-style tags (Claude model only)
                     </Label>
                   </div>
                   <div className="flex items-center space-x-3">

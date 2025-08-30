@@ -1,10 +1,13 @@
-import { useState } from "react";
-import { Copy, Download, RotateCcw, Edit } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Copy, Download, Heart, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { togglePromptFavorite } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 interface OutputSectionProps {
   generatedResult: any;
@@ -13,7 +16,10 @@ interface OutputSectionProps {
 
 export default function OutputSection({ generatedResult, isGenerating }: OutputSectionProps) {
   const [viewMode, setViewMode] = useState<'preview' | 'markdown'>('preview');
+  const [isFavorited, setIsFavorited] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const handleCopyToClipboard = async () => {
     if (!generatedResult?.generatedPrompt) return;
@@ -50,6 +56,51 @@ export default function OutputSection({ generatedResult, isGenerating }: OutputS
       title: "Downloaded!",
       description: "Prompt downloaded as markdown file.",
     });
+  };
+
+  // Check if current prompt is favorited
+  useEffect(() => {
+    if (generatedResult?.promptId) {
+      // Check if prompt is in favorites (would need to fetch this info)
+      setIsFavorited(generatedResult.isFavorite || false);
+    }
+  }, [generatedResult]);
+
+  const favoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!generatedResult?.promptId) return;
+      return togglePromptFavorite(generatedResult.promptId, !isFavorited);
+    },
+    onSuccess: (data) => {
+      setIsFavorited(!isFavorited);
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts/favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts/recent"] });
+      toast({
+        title: !isFavorited ? "Added to Favorites!" : "Removed from Favorites",
+        description: !isFavorited 
+          ? "This prompt has been saved to your favorites." 
+          : "This prompt has been removed from your favorites.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update favorite status. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToggleFavorite = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save prompts to favorites.",
+        variant: "destructive",
+      });
+      return;
+    }
+    favoriteMutation.mutate();
   };
 
 
@@ -185,14 +236,18 @@ export default function OutputSection({ generatedResult, isGenerating }: OutputS
           {/* Action Buttons */}
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
             <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-slate-500 hover:text-slate-700"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Regenerate
-              </Button>
+              {user && generatedResult?.promptId && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-slate-500 hover:text-slate-700"
+                  onClick={handleToggleFavorite}
+                  disabled={favoriteMutation.isPending}
+                >
+                  <Heart className={`h-3 w-3 mr-1 ${isFavorited ? 'fill-current text-yellow-500' : ''}`} />
+                  {isFavorited ? 'Remove from Favorites' : 'Save to Favorites'}
+                </Button>
+              )}
             </div>
             <div className="flex items-center space-x-3">
               <Button 

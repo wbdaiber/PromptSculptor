@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, UserPlus, Key, BookOpen, Zap, Settings, Copy, ArrowRight } from 'lucide-react';
+import { PlayCircle, UserPlus, Key, BookOpen, Zap, Settings, Copy, ArrowRight, Shield, Check } from 'lucide-react';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -160,6 +160,40 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Optimized for Claude, GPT, Gemini, and other AI models
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Security Features */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <Shield className="h-5 w-5 text-emerald-600" />
+              Security Features
+            </h3>
+            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg space-y-3">
+              <div className="flex items-start gap-3">
+                <Check className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-slate-800 dark:text-slate-200">API keys encrypted with AES-256-GCM</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-slate-800 dark:text-slate-200">Session-based authentication</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-slate-800 dark:text-slate-200">Secure HTTP-only cookies</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-slate-800 dark:text-slate-200">User data isolation</p>
+                </div>
               </div>
             </div>
           </div>

@@ -5,11 +5,15 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import Favorites from "@/pages/favorites";
+import Recent from "@/pages/recent";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/favorites" component={Favorites} />
+      <Route path="/recent" component={Recent} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -54,10 +54,13 @@ class EncryptionService {
 // Extended storage interface for user operations
 export interface IDatabaseStorage extends IStorage {
   // User management
-  createUser(email: string, password: string): Promise<User>;
+  createUser(username: string, email: string, password: string): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   getUserById(id: string): Promise<User | undefined>;
   verifyPassword(email: string, password: string): Promise<boolean>;
+  updateUserPassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean>;
+  deleteUser(userId: string, password: string): Promise<boolean>;
   
   // API key management
   createUserApiKey(userId: string, service: string, apiKey: string, keyName?: string): Promise<UserApiKey>;
@@ -156,6 +159,41 @@ export class DatabaseStorage implements IDatabaseStorage {
       .where(eq(prompts.userId, this.userId))
       .orderBy(desc(prompts.createdAt))
       .limit(limit);
+  }
+
+  async getFavoritePrompts(limit: number = 10): Promise<Prompt[]> {
+    // Only return favorite prompts for authenticated users
+    if (!this.userId) {
+      return []; // No favorites for anonymous users
+    }
+    
+    const query = this.db
+      .select()
+      .from(prompts)
+      .where(and(
+        eq(prompts.userId, this.userId),
+        eq(prompts.isFavorite, true)
+      ))
+      .orderBy(desc(prompts.createdAt));
+    
+    return limit ? await query.limit(limit) : await query;
+  }
+
+  async togglePromptFavorite(id: string, isFavorite: boolean): Promise<Prompt | undefined> {
+    if (!this.userId) {
+      return undefined;
+    }
+
+    const result = await this.db
+      .update(prompts)
+      .set({ isFavorite })
+      .where(and(
+        eq(prompts.id, id),
+        eq(prompts.userId, this.userId)
+      ))
+      .returning();
+    
+    return result[0];
   }
 
   async createPrompt(insertPrompt: InsertPrompt): Promise<Prompt> {
@@ -334,12 +372,13 @@ export class DatabaseStorage implements IDatabaseStorage {
   }
 
   // User management methods
-  async createUser(email: string, password: string): Promise<User> {
+  async createUser(username: string, email: string, password: string): Promise<User> {
     const passwordHash = await bcrypt.hash(password, DatabaseStorage.SALT_ROUNDS);
     
     const result = await this.db
       .insert(users)
       .values({
+        username,
         email,
         passwordHash,
       })
@@ -353,6 +392,16 @@ export class DatabaseStorage implements IDatabaseStorage {
       .select()
       .from(users)
       .where(eq(users.email, email))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
       .limit(1);
     
     return result[0];
@@ -373,6 +422,47 @@ export class DatabaseStorage implements IDatabaseStorage {
     if (!user) return false;
     
     return bcrypt.compare(password, user.passwordHash);
+  }
+
+  async updateUserPassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
+    // First, get the user and verify the current password
+    const user = await this.getUserById(userId);
+    if (!user) return false;
+    
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isCurrentPasswordValid) return false;
+    
+    // Hash the new password
+    const newPasswordHash = await bcrypt.hash(newPassword, DatabaseStorage.SALT_ROUNDS);
+    
+    // Update the password
+    const result = await this.db
+      .update(users)
+      .set({ 
+        passwordHash: newPasswordHash,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    
+    return result.length > 0;
+  }
+
+  async deleteUser(userId: string, password: string): Promise<boolean> {
+    // First, verify the password
+    const user = await this.getUserById(userId);
+    if (!user) return false;
+    
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) return false;
+    
+    // Delete the user (CASCADE will handle related data like API keys, prompts, templates)
+    const result = await this.db
+      .delete(users)
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    
+    return result.length > 0;
   }
 
   // API key management methods

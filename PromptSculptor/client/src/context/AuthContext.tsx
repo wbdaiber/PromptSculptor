@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { getCurrentUser, getUserApiKeys, addUserApiKey, deleteUserApiKey, login as apiLogin, signup as apiSignup, logout as apiLogout } from '@/lib/api';
+import { getCurrentUser, getUserApiKeys, addUserApiKey, deleteUserApiKey, login as apiLogin, signup as apiSignup, logout as apiLogout, changePassword as apiChangePassword, deleteAccount as apiDeleteAccount } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 
 // Types for authentication
 interface User {
   id: string;
+  username: string;
   email: string;
 }
 
@@ -22,8 +23,12 @@ interface AuthContextType {
   
   // Authentication methods
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  
+  // Password and account management
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   
   // API key management
   apiKeys: UserApiKey[];
@@ -102,8 +107,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Signup method
-  const signup = async (email: string, password: string): Promise<void> => {
-    const data = await apiSignup(email, password);
+  const signup = async (username: string, email: string, password: string): Promise<void> => {
+    const data = await apiSignup(username, email, password);
     setUser(data.user);
     
     // New users won't have API keys yet, but initialize empty array
@@ -125,6 +130,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     queryClient.clear();
     
     // Specifically remove template queries to ensure they are cleared
+    queryClient.removeQueries({ queryKey: ['/api/templates'] });
+    queryClient.removeQueries({ queryKey: ['/api/prompts'] });
+    
+    // Force immediate refetch of templates for demo mode
+    queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
+  };
+
+  // Change password method
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    await apiChangePassword(currentPassword, newPassword);
+  };
+
+  // Delete account method
+  const deleteAccount = async (password: string): Promise<void> => {
+    await apiDeleteAccount(password);
+    
+    // After successful account deletion, clear local state as if logging out
+    setUser(null);
+    setApiKeys([]);
+    
+    // Clear all cached query data
+    queryClient.clear();
+    
+    // Specifically remove template and prompt queries
     queryClient.removeQueries({ queryKey: ['/api/templates'] });
     queryClient.removeQueries({ queryKey: ['/api/prompts'] });
     
@@ -158,6 +187,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     signup,
     logout,
+    changePassword,
+    deleteAccount,
     apiKeys,
     addApiKey,
     removeApiKey,

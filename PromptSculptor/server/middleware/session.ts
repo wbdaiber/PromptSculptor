@@ -11,6 +11,7 @@ declare global {
   namespace Express {
     interface User {
       id: string;
+      username: string;
       email: string;
     }
     interface Request {
@@ -73,7 +74,7 @@ function setupPassport() {
           return done(null, false, { message: 'Invalid email or password' });
         }
         
-        return done(null, { id: user.id, email: user.email });
+        return done(null, { id: user.id, username: user.username, email: user.email });
       } catch (error) {
         return done(error);
       }
@@ -90,7 +91,7 @@ function setupPassport() {
     try {
       const user = await dbStorage.getUserById(id);
       if (user) {
-        done(null, { id: user.id, email: user.email });
+        done(null, { id: user.id, username: user.username, email: user.email });
       } else {
         done(null, false);
       }

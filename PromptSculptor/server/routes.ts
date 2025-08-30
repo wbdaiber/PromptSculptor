@@ -363,6 +363,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get favorite prompts - PROTECTED: Requires authentication
+  app.get("/api/prompts/favorites", extractUserId, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      // Set no-cache headers to prevent browser caching of user data
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      });
+      
+      // Only return prompts if user is authenticated
+      if (!req.userId) {
+        return res.status(401).json({ 
+          error: 'Authentication required',
+          message: 'Please log in to view favorite prompts'
+        });
+      }
+      
+      const userStorage = createStorage(req.userId);
+      const prompts = await userStorage.getFavoritePrompts(limit);
+      res.json(prompts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch favorite prompts" });
+    }
+  });
+
+  // Toggle prompt favorite status - PROTECTED: Requires authentication
+  app.patch("/api/prompts/:id/favorite", modificationLimiter, extractUserId, async (req, res) => {
+    try {
+      // Check authentication
+      const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
+      const isSessionAuth = req.user && req.userId;
+      
+      if (!isApiKeyAuth && !isSessionAuth) {
+        return res.status(401).json({ 
+          error: 'Authentication required',
+          message: 'Please log in to manage favorite prompts'
+        });
+      }
+      
+      const { isFavorite } = req.body;
+      
+      if (typeof isFavorite !== 'boolean') {
+        return res.status(400).json({ 
+          error: 'Invalid request',
+          message: 'isFavorite must be a boolean value'
+        });
+      }
+      
+      const userStorage = createStorage(req.userId);
+      const updatedPrompt = await userStorage.togglePromptFavorite(req.params.id, isFavorite);
+      
+      if (!updatedPrompt) {
+        return res.status(404).json({ message: "Prompt not found or access denied" });
+      }
+      
+      res.json(updatedPrompt);
+    } catch (error) {
+      console.error('Favorite toggle error:', error);
+      res.status(500).json({ 
+        message: "Failed to update favorite status",
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      });
+    }
+  });
+
   // Get all prompts - user-specific with optional authentication
   app.get("/api/prompts", extractUserId, async (req, res) => {
     try {

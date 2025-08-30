@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Edit, Trash2 } from "lucide-react";
+import { Copy, Edit, Trash2, Heart } from "lucide-react";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { getRecentPrompts, deletePrompt } from "@/lib/api";
+import { getRecentPrompts, deletePrompt, togglePromptFavorite } from "@/lib/api";
 import EditPromptDialog from "@/components/edit-prompt-dialog";
 import type { Prompt } from "@shared/schema";
 
 export default function RecentPrompts() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -30,6 +32,7 @@ export default function RecentPrompts() {
         description: "Prompt has been deleted successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/prompts/recent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts/favorites"] });
     },
     onError: () => {
       toast({
@@ -37,6 +40,43 @@ export default function RecentPrompts() {
         description: "Failed to delete prompt. Please try again.",
         variant: "destructive",
       });
+    },
+  });
+
+  const favoriteMutation = useMutation({
+    mutationFn: ({ id, isFavorite }: { id: string; isFavorite: boolean }) => 
+      togglePromptFavorite(id, isFavorite),
+    onMutate: async ({ id, isFavorite }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/prompts/recent"] });
+      const previousPrompts = queryClient.getQueryData<Prompt[]>(["/api/prompts/recent"]);
+      
+      queryClient.setQueryData<Prompt[]>(["/api/prompts/recent"], (old) => 
+        old ? old.map((p) => p.id === id ? { ...p, isFavorite } : p) : []
+      );
+      
+      return { previousPrompts };
+    },
+    onError: (_, __, context) => {
+      if (context?.previousPrompts) {
+        queryClient.setQueryData(["/api/prompts/recent"], context.previousPrompts);
+      }
+      toast({
+        title: "Action Failed",
+        description: "Failed to update favorites. Please try again.",
+        variant: "destructive",
+      });
+    },
+    onSuccess: (_, { isFavorite }) => {
+      toast({
+        title: isFavorite ? "Added to Favorites" : "Removed from Favorites",
+        description: isFavorite 
+          ? "Prompt has been added to your favorites."
+          : "Prompt has been removed from your favorites.",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts/recent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts/favorites"] });
     },
   });
 
@@ -63,6 +103,14 @@ export default function RecentPrompts() {
   const handleEdit = (prompt: Prompt) => {
     setEditingPrompt(prompt);
     setIsEditDialogOpen(true);
+  };
+
+  const handleToggleFavorite = (promptId: string, currentStatus: boolean) => {
+    favoriteMutation.mutate({ id: promptId, isFavorite: !currentStatus });
+  };
+
+  const handleViewAll = () => {
+    setLocation("/recent");
   };
 
   const getTemplateIcon = (templateType: string) => {
@@ -95,7 +143,11 @@ export default function RecentPrompts() {
     <div className="mt-12">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Recent Prompts</h2>
-        <Button variant="ghost" className="text-blue-600 hover:text-blue-700 font-medium">
+        <Button 
+          variant="ghost" 
+          className="text-blue-600 hover:text-blue-700 font-medium"
+          onClick={handleViewAll}
+        >
           View All
         </Button>
       </div>
@@ -147,6 +199,22 @@ export default function RecentPrompts() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-500 dark:text-slate-400">{prompt.wordCount} words</span>
                     <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`p-1 h-auto ${
+                          prompt.isFavorite 
+                            ? "text-yellow-500 hover:text-yellow-600" 
+                            : "text-slate-400 hover:text-yellow-500"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFavorite(prompt.id, prompt.isFavorite || false);
+                        }}
+                        title={prompt.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Heart className={`h-3 w-3 ${prompt.isFavorite ? "fill-current" : ""}`} />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

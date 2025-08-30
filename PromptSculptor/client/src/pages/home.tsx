@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import InputSection from "@/components/input-section";
 import OutputSection from "@/components/output-section";
 import RecentPrompts from "@/components/recent-prompts";
+import FavoritePrompts from "@/components/favorite-prompts";
 import ThemeToggle from "@/components/theme-toggle";
 import { AuthModal } from "@/components/auth";
 import { HelpModal } from "@/components/help-modal";
@@ -254,6 +255,9 @@ export default function Home() {
 
             {/* Recent Prompts - Only show for authenticated users */}
             {user && <RecentPrompts />}
+            
+            {/* Favorite Prompts - Only show for authenticated users */}
+            {user && <FavoritePrompts />}
           </div>
         </div>
       </main>
@@ -263,11 +267,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-slate-500">© 2024 PromptCraft. All rights reserved.</span>
+              <span className="text-sm text-slate-500">© 2025 PromptCraft. All rights reserved.</span>
             </div>
             <div className="flex items-center space-x-6">
               <a href="#" className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Documentation</a>
-              <a href="#" className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">API</a>
               <a href="#" className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Support</a>
             </div>
           </div>

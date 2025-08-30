@@ -50,6 +50,17 @@ export async function getRecentPrompts(limit?: number): Promise<Prompt[]> {
   return response.json();
 }
 
+export async function getFavoritePrompts(limit?: number): Promise<Prompt[]> {
+  const url = limit ? `/api/prompts/favorites?limit=${limit}` : "/api/prompts/favorites";
+  const response = await apiRequest("GET", url);
+  return response.json();
+}
+
+export async function togglePromptFavorite(id: string, isFavorite: boolean): Promise<Prompt> {
+  const response = await apiRequest("PATCH", `/api/prompts/${id}/favorite`, { isFavorite });
+  return response.json();
+}
+
 export async function deletePrompt(id: string) {
   const response = await apiRequest("DELETE", `/api/prompts/${id}`);
   return response.json();
@@ -66,8 +77,8 @@ export async function login(email: string, password: string) {
   return response.json();
 }
 
-export async function signup(email: string, password: string) {
-  const response = await apiRequest("POST", "/api/auth/register", { email, password });
+export async function signup(username: string, email: string, password: string) {
+  const response = await apiRequest("POST", "/api/auth/register", { username, email, password });
   return response.json();
 }
 
@@ -98,5 +109,19 @@ export async function addUserApiKey(service: string, apiKey: string, keyName?: s
 
 export async function deleteUserApiKey(keyId: string) {
   const response = await apiRequest("DELETE", `/api/auth/api-keys/${keyId}`);
+  return response.json();
+}
+
+// Password and Account management functions
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const response = await apiRequest("PATCH", "/api/auth/change-password", { 
+    currentPassword, 
+    newPassword 
+  });
+  return response.json();
+}
+
+export async function deleteAccount(password: string) {
+  const response = await apiRequest("DELETE", "/api/auth/account", { password });
   return response.json();
 }

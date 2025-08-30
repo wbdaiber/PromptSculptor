@@ -7,9 +7,11 @@ export interface IStorage {
   getPrompt(id: string): Promise<Prompt | undefined>;
   getPrompts(): Promise<Prompt[]>;
   getRecentPrompts(limit?: number): Promise<Prompt[]>;
+  getFavoritePrompts(limit?: number): Promise<Prompt[]>;
   createPrompt(prompt: InsertPrompt): Promise<Prompt>;
   updatePrompt(id: string, prompt: Partial<InsertPrompt>): Promise<Prompt | undefined>;
   deletePrompt(id: string): Promise<boolean>;
+  togglePromptFavorite(id: string, isFavorite: boolean): Promise<Prompt | undefined>;
   
   getTemplate(id: string): Promise<Template | undefined>;
   getTemplates(): Promise<Template[]>;
@@ -72,6 +74,32 @@ export class MemStorage implements IStorage {
     return allPrompts.slice(0, limit);
   }
 
+  async getFavoritePrompts(limit: number = 10): Promise<Prompt[]> {
+    // Only return favorite prompts for authenticated users
+    if (!this.userId) {
+      return []; // No favorites for anonymous users
+    }
+    
+    const allPrompts = Array.from(this.prompts.values())
+      .filter(prompt => prompt.userId === this.userId && prompt.isFavorite)
+      .sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    
+    return limit ? allPrompts.slice(0, limit) : allPrompts;
+  }
+
+  async togglePromptFavorite(id: string, isFavorite: boolean): Promise<Prompt | undefined> {
+    const prompt = this.prompts.get(id);
+    if (!prompt || prompt.userId !== this.userId) {
+      return undefined;
+    }
+
+    const updated: Prompt = { ...prompt, isFavorite };
+    this.prompts.set(id, updated);
+    return updated;
+  }
+
   async createPrompt(insertPrompt: InsertPrompt): Promise<Prompt> {
     const id = randomUUID();
     const prompt: Prompt = { 
@@ -87,6 +115,7 @@ export class MemStorage implements IStorage {
       useXMLTags: insertPrompt.useXMLTags ?? true,
       includeConstraints: insertPrompt.includeConstraints ?? false,
       wordCount: insertPrompt.wordCount || 0,
+      isFavorite: insertPrompt.isFavorite ?? false,
       userId: insertPrompt.userId || null, // Optional for backward compatibility
     };
     this.prompts.set(id, prompt);
