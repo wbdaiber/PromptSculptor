@@ -7,10 +7,13 @@ import {
   type InsertUser,
   type UserApiKey,
   type InsertUserApiKey,
+  type PasswordResetToken,
+  type InsertPasswordResetToken,
   prompts,
   templates,
   users,
-  userApiKeys
+  userApiKeys,
+  passwordResetTokens
 } from "@shared/schema";
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq, desc, and, sql, or } from 'drizzle-orm';
@@ -542,6 +545,77 @@ export class DatabaseStorage implements IDatabaseStorage {
     }
   }
   
+  // Password Reset Token operations
+  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    const result = await this.db
+      .insert(passwordResetTokens)
+      .values(token)
+      .returning();
+    
+    return result[0];
+  }
+
+  async getPasswordResetToken(hashedToken: string): Promise<PasswordResetToken | undefined> {
+    const result = await this.db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, hashedToken))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async markTokenAsUsed(id: string): Promise<boolean> {
+    const result = await this.db
+      .update(passwordResetTokens)
+      .set({ 
+        used: true
+      })
+      .where(eq(passwordResetTokens.id, id))
+      .returning({ id: passwordResetTokens.id });
+    
+    return result.length > 0;
+  }
+
+  async invalidateUserTokens(userId: string): Promise<number> {
+    const result = await this.db
+      .update(passwordResetTokens)
+      .set({ 
+        used: true
+      })
+      .where(and(
+        eq(passwordResetTokens.userId, userId),
+        eq(passwordResetTokens.used, false)
+      ))
+      .returning({ id: passwordResetTokens.id });
+    
+    return result.length;
+  }
+
+  async cleanupExpiredTokens(): Promise<number> {
+    const result = await this.db
+      .delete(passwordResetTokens)
+      .where(sql`${passwordResetTokens.expiresAt} < NOW()`)
+      .returning({ id: passwordResetTokens.id });
+    
+    return result.length;
+  }
+
+  async resetUserPassword(userId: string, newPassword: string): Promise<boolean> {
+    const newPasswordHash = await bcrypt.hash(newPassword, DatabaseStorage.SALT_ROUNDS);
+    
+    const result = await this.db
+      .update(users)
+      .set({ 
+        passwordHash: newPasswordHash,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    
+    return result.length > 0;
+  }
+
   // Instance method for backward compatibility
   async close(): Promise<void> {
     return DatabaseStorage.closePool();

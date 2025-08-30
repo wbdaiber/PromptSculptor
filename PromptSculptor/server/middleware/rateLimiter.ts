@@ -50,3 +50,21 @@ export const modificationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Email-specific limiter for password reset requests (prevent abuse)
+export const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Only 3 password reset requests per 15 minutes
+  message: { error: 'Too many password reset requests. Please wait before trying again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false, // Count all requests to prevent spam
+  handler: (req, res) => {
+    console.warn(`Password reset rate limit exceeded from IP: ${req.ip}`);
+    res.status(429).json({
+      error: 'Too many password reset requests. Please wait before trying again.',
+      message: 'For security reasons, you can only request password resets 3 times per 15 minutes.',
+      retryAfter: 900 // 15 minutes in seconds
+    });
+  }
+});

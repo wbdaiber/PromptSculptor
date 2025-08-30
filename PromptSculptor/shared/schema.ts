@@ -23,6 +23,16 @@ export const userApiKeys = pgTable("user_api_keys", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Password reset tokens table for secure password recovery
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  token: text("token").notNull(), // Hashed token
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Updated prompts table with user relationship
 export const prompts = pgTable("prompts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -67,6 +77,11 @@ export const insertUserApiKeySchema = createInsertSchema(userApiKeys).omit({
   createdAt: true,
 });
 
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertPromptSchema = createInsertSchema(prompts).omit({
   id: true,
   createdAt: true,
@@ -82,6 +97,8 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUserApiKey = z.infer<typeof insertUserApiKeySchema>;
 export type UserApiKey = typeof userApiKeys.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPrompt = z.infer<typeof insertPromptSchema>;
 export type Prompt = typeof prompts.$inferSelect;
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
@@ -98,3 +115,16 @@ export const generatePromptRequestSchema = z.object({
 });
 
 export type GeneratePromptRequest = z.infer<typeof generatePromptRequestSchema>;
+
+// Password reset request schemas
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Token is required'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;

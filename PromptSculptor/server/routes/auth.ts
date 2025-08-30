@@ -4,6 +4,10 @@ import { DatabaseStorage } from '../databaseStorage';
 import { z } from 'zod';
 import { sanitizeInput } from '../utils/sanitizer';
 import { UserApiKeyManager } from '../services/userApiKeyManager';
+import { passwordResetLimiter } from '../middleware/rateLimiter';
+import { generateResetToken, hashToken } from '../services/tokenService';
+import { sendPasswordResetEmail, sendWelcomeEmail } from '../services/emailService';
+import { forgotPasswordSchema, resetPasswordSchema } from '../../shared/schema';
 
 const router = Router();
 
@@ -58,6 +62,22 @@ router.post('/register', async (req: Request, res: Response) => {
     
     // Create new user
     const user = await dbStorage.createUser(sanitizedUsername, sanitizedEmail, password);
+    
+    // Send welcome email (non-blocking - registration succeeds even if email fails)
+    try {
+      const emailResult = await sendWelcomeEmail({
+        email: user.email,
+        userName: user.username
+      });
+      
+      if (emailResult.success) {
+        console.log(`✅ Welcome email sent to new user: ${user.email} (User ID: ${user.id})`);
+      } else {
+        console.error('⚠️ Welcome email failed but registration continued:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('⚠️ Welcome email error but registration continued:', emailError);
+    }
     
     // Log the user in automatically after registration
     req.login({ id: user.id, username: user.username, email: user.email }, (err) => {
@@ -287,6 +307,183 @@ router.delete('/account', async (req: Request, res: Response) => {
     res.status(500).json({ 
       error: 'Account deletion failed',
       message: 'An error occurred while deleting the account'
+    });
+  }
+});
+
+// Forgot password - request password reset email
+router.post('/forgot-password', passwordResetLimiter, async (req: Request, res: Response) => {
+  try {
+    // Validate and sanitize input
+    const { email } = forgotPasswordSchema.parse(req.body);
+    const sanitizedEmail = sanitizeInput(email).toLowerCase();
+    
+    const dbStorage = new DatabaseStorage();
+    
+    // Look up user by email
+    const user = await dbStorage.getUserByEmail(sanitizedEmail);
+    
+    // Always respond with success to prevent user enumeration
+    // This prevents attackers from determining which emails exist in the system
+    const standardResponse = {
+      message: 'If an account with that email exists, we have sent you a password reset link.',
+      instructions: 'Please check your email and follow the instructions to reset your password.'
+    };
+    
+    // If user doesn't exist, still return success but don't send email
+    if (!user) {
+      console.info(`Password reset requested for non-existent email: ${sanitizedEmail}`);
+      return res.json(standardResponse);
+    }
+    
+    // Generate secure reset token
+    const tokenData = generateResetToken(30); // 30 minutes expiry
+    
+    // Store hashed token in database
+    try {
+      await dbStorage.createPasswordResetToken({
+        userId: user.id,
+        token: tokenData.hashedToken,
+        expiresAt: tokenData.expiresAt,
+        used: false
+      });
+    } catch (dbError) {
+      console.error('Database error creating password reset token:', dbError);
+      return res.status(500).json({
+        error: 'Service temporarily unavailable',
+        message: 'Unable to process password reset request. Please try again later.'
+      });
+    }
+    
+    // Send password reset email
+    try {
+      const emailResult = await sendPasswordResetEmail({
+        email: user.email,
+        resetToken: tokenData.token, // Send raw token, not hashed
+        expiresAt: tokenData.expiresAt,
+        userName: user.username
+      });
+      
+      if (!emailResult.success) {
+        console.error('Email service error:', emailResult.error);
+        // Even if email fails, don't reveal this to prevent user enumeration
+        // Log error for admin monitoring but return success to user
+      }
+      
+      // Log successful password reset request for security monitoring
+      console.info(`Password reset email sent to: ${user.email} (User ID: ${user.id})`);
+      
+    } catch (emailError) {
+      console.error('Unexpected email error:', emailError);
+      // Continue and return success to prevent user enumeration
+    }
+    
+    res.json(standardResponse);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: 'Invalid email address',
+        message: 'Please provide a valid email address',
+        details: error.errors
+      });
+    }
+    
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      error: 'Service temporarily unavailable',
+      message: 'Unable to process password reset request. Please try again later.'
+    });
+  }
+});
+
+// Reset password - complete password reset with token
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    // Validate and sanitize input
+    const { token, newPassword } = resetPasswordSchema.parse(req.body);
+    const sanitizedToken = sanitizeInput(token);
+    const sanitizedNewPassword = sanitizeInput(newPassword);
+    
+    // Hash the token to match stored format
+    const hashedToken = hashToken(sanitizedToken);
+    
+    const dbStorage = new DatabaseStorage();
+    
+    // Retrieve token from database
+    const tokenRecord = await dbStorage.getPasswordResetToken(hashedToken);
+    
+    if (!tokenRecord) {
+      console.warn(`Invalid password reset token attempted: ${sanitizedToken.substring(0, 10)}...`);
+      return res.status(400).json({
+        error: 'Invalid reset link',
+        message: 'This password reset link is invalid or has expired. Please request a new one.'
+      });
+    }
+    
+    // Check if token is already used
+    if (tokenRecord.used) {
+      console.warn(`Used password reset token attempted: ${sanitizedToken.substring(0, 10)}... (User ID: ${tokenRecord.userId})`);
+      return res.status(400).json({
+        error: 'Reset link already used',
+        message: 'This password reset link has already been used. Please request a new one if needed.'
+      });
+    }
+    
+    // Check if token is expired
+    if (new Date() > tokenRecord.expiresAt) {
+      console.warn(`Expired password reset token attempted: ${sanitizedToken.substring(0, 10)}... (User ID: ${tokenRecord.userId})`);
+      return res.status(400).json({
+        error: 'Reset link expired',
+        message: 'This password reset link has expired. Please request a new one.'
+      });
+    }
+    
+    // Mark token as used first (prevents race conditions)
+    const tokenMarkedUsed = await dbStorage.markTokenAsUsed(tokenRecord.id);
+    if (!tokenMarkedUsed) {
+      console.error(`Failed to mark token as used: ${tokenRecord.id}`);
+      return res.status(500).json({
+        error: 'Reset failed',
+        message: 'Unable to process password reset. Please try again.'
+      });
+    }
+    
+    // Update user password
+    const passwordUpdated = await dbStorage.resetUserPassword(tokenRecord.userId, sanitizedNewPassword);
+    if (!passwordUpdated) {
+      console.error(`Failed to reset password for user: ${tokenRecord.userId}`);
+      return res.status(500).json({
+        error: 'Reset failed',
+        message: 'Unable to update password. Please request a new reset link.'
+      });
+    }
+    
+    // Invalidate all other password reset tokens for this user (security measure)
+    await dbStorage.invalidateUserTokens(tokenRecord.userId);
+    
+    // Clear user's API client cache (security measure)
+    UserApiKeyManager.clearUserCache(tokenRecord.userId);
+    
+    // Log successful password reset for security monitoring
+    console.info(`Password successfully reset for user ID: ${tokenRecord.userId}`);
+    
+    res.json({
+      message: 'Password reset successful',
+      instructions: 'Your password has been updated. You can now log in with your new password.'
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: 'Invalid input',
+        message: 'Please provide a valid reset token and password',
+        details: error.errors
+      });
+    }
+    
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      error: 'Reset failed',
+      message: 'Unable to process password reset. Please try again or request a new reset link.'
     });
   }
 });

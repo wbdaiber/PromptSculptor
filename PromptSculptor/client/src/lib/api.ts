@@ -125,3 +125,14 @@ export async function deleteAccount(password: string) {
   const response = await apiRequest("DELETE", "/api/auth/account", { password });
   return response.json();
 }
+
+// Password recovery functions
+export async function forgotPassword(email: string) {
+  const response = await apiRequest("POST", "/api/auth/forgot-password", { email });
+  return response.json();
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const response = await apiRequest("POST", "/api/auth/reset-password", { token, newPassword });
+  return response.json();
+}

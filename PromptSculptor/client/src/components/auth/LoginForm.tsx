@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +26,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [, setLocation] = useLocation();
   const { login } = useAuth();
 
   const {
@@ -107,6 +109,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
             {errors.password && (
               <p className="text-sm text-red-500">{errors.password.message}</p>
             )}
+            
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="link"
+                className="p-0 h-auto text-sm"
+                onClick={() => setLocation('/forgot-password')}
+                disabled={isLoading}
+              >
+                Forgot Password?
+              </Button>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>

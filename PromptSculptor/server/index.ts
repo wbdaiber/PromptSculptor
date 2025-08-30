@@ -6,6 +6,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { validateEnv } from "./config/env";
 import { generalLimiter } from "./middleware/rateLimiter";
+import { scheduleTokenCleanup } from "./services/tokenCleanupService.js";
 
 
 const app = express();
@@ -76,6 +77,22 @@ app.use((req, res, next) => {
 (async () => {
   // SECURE: Validate environment variables on startup
   validateEnv();
+  
+  // Schedule automatic token cleanup (every 4 hours in production, 1 hour in development)
+  const cleanupInterval = process.env.NODE_ENV === 'production' ? 240 : 60; // minutes
+  const stopCleanup = scheduleTokenCleanup(cleanupInterval);
+  
+  // Graceful shutdown handling
+  process.on('SIGTERM', () => {
+    log('SIGTERM received, stopping token cleanup scheduler...');
+    stopCleanup();
+  });
+  
+  process.on('SIGINT', () => {
+    log('SIGINT received, stopping token cleanup scheduler...');
+    stopCleanup();
+    process.exit(0);
+  });
   
   const server = await registerRoutes(app);
 

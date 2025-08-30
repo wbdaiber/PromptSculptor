@@ -25,6 +25,11 @@ const envSchema = z.object({
   
   // Optional security configuration
   CORS_ORIGINS: z.string().default('http://localhost:5001,http://localhost:3000'),
+  
+  // Email configuration (Resend)
+  RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required for email functionality').optional(),
+  EMAIL_FROM: z.string().email('EMAIL_FROM must be a valid email address').optional(),
+  APP_URL: z.string().url('APP_URL must be a valid URL').default('http://localhost:5001'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -52,6 +57,11 @@ export function validateEnv(): EnvConfig {
       // Validate security configuration strength in production
       if (env.SESSION_SECRET.length < 64) {
         console.warn('⚠️  SESSION_SECRET should be at least 64 characters in production');
+      }
+      
+      // Validate email configuration in production
+      if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+        console.warn('⚠️  Email functionality (password reset) requires RESEND_API_KEY and EMAIL_FROM in production');
       }
     }
     

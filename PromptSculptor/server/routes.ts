@@ -10,6 +10,7 @@ import { aiLimiter, modificationLimiter } from "./middleware/rateLimiter";
 import { sanitizePromptRequest, sanitizeTitle, sanitizeOutput } from "./utils/sanitizer";
 import { setupSession, extractUserId, requireAuth, optionalAuth } from "./middleware/session";
 import authRoutes from "./routes/auth";
+import monitoringRoutes from "./routes/monitoring";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session management and passport authentication
@@ -17,6 +18,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Authentication routes
   app.use('/api/auth', authRoutes);
+  
+  // Monitoring routes (admin endpoints)
+  app.use('/api/monitoring', monitoringRoutes);
   
   // Health check and auth status
   app.get("/api/health", (req, res) => {

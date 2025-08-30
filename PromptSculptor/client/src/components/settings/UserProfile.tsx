@@ -77,7 +77,7 @@ export const UserProfile: React.FC = () => {
   };
 
   const getPasswordDisplay = (): string => {
-    return showPassword ? 'Last changed: Recently' : '••••••••';
+    return showPassword ? '••••••••' : 'Last changed: Recently';
   };
 
   return (

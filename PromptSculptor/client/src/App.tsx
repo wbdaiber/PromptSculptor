@@ -7,6 +7,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Favorites from "@/pages/favorites";
 import Recent from "@/pages/recent";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 function Router() {
   return (
@@ -14,6 +16,9 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/recent" component={Recent} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password/:token" component={ResetPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>
   );
