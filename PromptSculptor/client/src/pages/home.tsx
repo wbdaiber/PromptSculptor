@@ -9,6 +9,7 @@ import OutputSection from "@/components/output-section";
 import RecentPrompts from "@/components/recent-prompts";
 import ThemeToggle from "@/components/theme-toggle";
 import { AuthModal } from "@/components/auth";
+import { HelpModal } from "@/components/help-modal";
 import { useAuth } from "@/context/AuthContext";
 import SettingsDropdown from "@/components/settings-dropdown";
 import EditTemplateDialog from "@/components/edit-template-dialog";
@@ -23,6 +24,7 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalDefaultView, setAuthModalDefaultView] = useState<'login' | 'signup'>('login');
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
 
@@ -164,8 +166,14 @@ export default function Home() {
               </span>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
-                <HelpCircle className="h-4 w-4" />
+              <Button 
+                variant="ghost" 
+                size="default" 
+                onClick={() => setShowHelpModal(true)}
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 px-4 py-2"
+              >
+                <HelpCircle className="h-5 w-5 mr-2" />
+                Start Here
               </Button>
               
               {/* Authentication UI */}
@@ -265,6 +273,12 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Help Modal */}
+      <HelpModal 
+        isOpen={showHelpModal} 
+        onClose={() => setShowHelpModal(false)}
+      />
 
       {/* Authentication Modal */}
       <AuthModal 

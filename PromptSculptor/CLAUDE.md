@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. Updated 08-29-2025.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. Updated 08-30-2025.
 
 ## Development Commands
 
@@ -111,6 +111,12 @@ npm run db:push
   - **Space Optimization**: Reclaimed 200+ pixels of vertical space for better content visibility
   - **Responsive Design**: Desktop sidebar with mobile/tablet dropdown fallback
   - **Enhanced UX**: Auto-collapse on mobile after selection, selected template indicator
+- **Help Modal** (`client/src/components/help-modal.tsx`): **NEW COMPONENT - Aug 30, 2025**
+  - **Onboarding Experience**: Comprehensive help modal accessible via "Start Here" button in header
+  - **User Guidance**: Step-by-step instructions on how to use the app, create accounts, and add API keys
+  - **Feature Overview**: Explains all app capabilities including templates, advanced options, and recent prompts
+  - **Universal Design**: Single modal serves all users regardless of authentication status
+  - **Visual Guide**: Includes icons, structured sections, and clear call-to-action buttons
 
 **Testing Status**: All user flows validated (unauthenticated users, authenticated users with/without keys, error scenarios)
 
@@ -123,6 +129,7 @@ npm run db:push
 - ✅ **User Authentication**: Session-based auth with unauthenticated demo support
 - ✅ **API Key Management**: Encrypted storage with user-specific retrieval
 - ✅ **Performance Optimization**: Caching system for API clients and demo responses
+- ✅ **Help & Onboarding**: Interactive help modal with comprehensive user guidance
 
 ### Recent Critical Fixes & UX Improvements (Aug 2025)
 

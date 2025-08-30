@@ -51,30 +51,36 @@ export default function InputSection({
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [lastGeneratedResult, setLastGeneratedResult] = useState<GeneratedPromptResult | null>(null);
   const [showCreateTemplateDialog, setShowCreateTemplateDialog] = useState(false);
+  const [inputSource, setInputSource] = useState<'user' | 'template'>('user'); // Track input source
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  
+  const [wasUnauthenticated, setWasUnauthenticated] = useState(!user); // Track previous auth state
 
-  // Clear demo state when user authenticates with API keys
+  // Enhanced cleanup effect for authentication transitions
   useEffect(() => {
-    if (user && lastGeneratedResult?.isDemoMode) {
-      setLastGeneratedResult(null);
-    }
-  }, [user, lastGeneratedResult?.isDemoMode]);
-
-  // Clear input when user logs out
-  useEffect(() => {
-    if (!user) {
+    if (user && wasUnauthenticated) {
+      // User just authenticated - clear all demo mode content
       setNaturalLanguageInput("");
       setLastGeneratedResult(null);
+      setInputSource('user');
+      setWasUnauthenticated(false);
+    } else if (!user && !wasUnauthenticated) {
+      // User just logged out - clear everything and mark as unauthenticated
+      setNaturalLanguageInput("");
+      setLastGeneratedResult(null);
+      setInputSource('user');
+      setWasUnauthenticated(true);
     }
-  }, [user]);
+  }, [user, wasUnauthenticated]);
 
   // Load template sample input when template is selected
   useEffect(() => {
     if (selectedTemplate && selectedTemplate.sampleInput) {
       setNaturalLanguageInput(selectedTemplate.sampleInput);
+      setInputSource('template'); // Mark as template-loaded input
     }
   }, [selectedTemplate]);
 
@@ -154,6 +160,7 @@ export default function InputSection({
 
   const handleClear = () => {
     setNaturalLanguageInput("");
+    setInputSource('user');
   };
 
   const handleSaveAsTemplate = () => {
@@ -208,7 +215,10 @@ export default function InputSection({
         <CardContent className="p-6">
           <Textarea
             value={naturalLanguageInput}
-            onChange={(e) => setNaturalLanguageInput(e.target.value)}
+            onChange={(e) => {
+              setNaturalLanguageInput(e.target.value);
+              setInputSource('user'); // Mark as user-modified input
+            }}
             placeholder="I need to analyze customer feedback data to identify key themes and sentiment patterns. The analysis should include specific examples and actionable recommendations for improving our product..."
             className="w-full h-64 resize-none"
             maxLength={5000}
