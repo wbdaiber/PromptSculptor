@@ -134,10 +134,10 @@ export default function InputSection({
       return;
     }
 
-    if (naturalLanguageInput.length > 5000) {
+    if (naturalLanguageInput.length > 7500) {
       toast({
         title: "Input Too Long",
-        description: "Please keep your input under 5000 characters.",
+        description: "Please keep your input under 7500 characters.",
         variant: "destructive",
       });
       return;
@@ -207,7 +207,7 @@ export default function InputSection({
             <div className="flex items-center space-x-2">
               <span className="text-sm text-slate-500">{characterCount}</span>
               <span className="text-sm text-slate-400">/</span>
-              <span className="text-sm text-slate-400">5000</span>
+              <span className="text-sm text-slate-400">7500</span>
             </div>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Describe your task or requirements in plain language</p>
@@ -221,7 +221,7 @@ export default function InputSection({
             }}
             placeholder="I need to analyze customer feedback data to identify key themes and sentiment patterns. The analysis should include specific examples and actionable recommendations for improving our product..."
             className="w-full h-64 resize-none"
-            maxLength={5000}
+            maxLength={7500}
           />
 
           {/* Advanced Options */}

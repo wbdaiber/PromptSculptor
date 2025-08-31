@@ -74,7 +74,7 @@ export interface IDatabaseStorage extends IStorage {
 }
 
 export class DatabaseStorage implements IDatabaseStorage {
-  private db: ReturnType<typeof drizzle>;
+  public db: ReturnType<typeof drizzle>;
   private userId?: string;
   private static SALT_ROUNDS = 12;
   private static pool: Pool;
@@ -391,23 +391,39 @@ export class DatabaseStorage implements IDatabaseStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const result = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
-    
-    return result[0];
+    try {
+      const result = await this.db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.email, email),
+          eq(users.isDeleted, false)  // Utilizes composite index
+        ))
+        .limit(1);
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching user by email ${email}:`, error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .limit(1);
-    
-    return result[0];
+    try {
+      const result = await this.db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.username, username),
+          eq(users.isDeleted, false)
+        ))
+        .limit(1);
+      
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching user by username ${username}:`, error);
+      return undefined;
+    }
   }
 
   async getUserById(id: string): Promise<User | undefined> {
@@ -452,20 +468,81 @@ export class DatabaseStorage implements IDatabaseStorage {
   }
 
   async deleteUser(userId: string, password: string): Promise<boolean> {
-    // First, verify the password
-    const user = await this.getUserById(userId);
-    if (!user) return false;
-    
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) return false;
-    
-    // Delete the user (CASCADE will handle related data like API keys, prompts, templates)
-    const result = await this.db
-      .delete(users)
-      .where(eq(users.id, userId))
-      .returning({ id: users.id });
-    
-    return result.length > 0;
+    try {
+      // First, verify the password
+      const user = await this.getUserById(userId);
+      if (!user) {
+        console.error(`Delete user failed: User ${userId} not found`);
+        return false;
+      }
+      
+      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isPasswordValid) {
+        console.error(`Delete user failed: Invalid password for user ${userId}`);
+        return false;
+      }
+      
+      // Enhanced anonymization with timestamp to handle multiple delete/recreate cycles
+      const timestamp = Date.now();
+      const anonymizedEmail = `deleted_${userId}_${timestamp}@deleted.local`;
+      // Keep username under 50 char limit: use last 8 chars of userId + timestamp
+      const userIdShort = userId.slice(-8);
+      const anonymizedUsername = `del_${userIdShort}_${timestamp}`.slice(0, 50);
+      
+      // Start transaction for atomic operation
+      const result = await this.db.transaction(async (tx) => {
+        try {
+          // Soft delete with full anonymization
+          const updateResult = await tx
+            .update(users)
+            .set({ 
+              isDeleted: true,
+              deletedAt: new Date(),
+              email: anonymizedEmail,
+              username: anonymizedUsername,
+              passwordHash: 'DELETED',
+              updatedAt: new Date()
+            })
+            .where(eq(users.id, userId))
+            .returning({ id: users.id });
+          
+          if (updateResult.length === 0) {
+            throw new Error('Failed to update user record');
+          }
+          
+          // Log successful soft deletion for monitoring
+          console.log(`User ${userId} soft-deleted successfully at ${new Date().toISOString()}`);
+          
+          return updateResult;
+        } catch (txError) {
+          console.error(`Transaction failed during user deletion:`, txError);
+          throw txError; // Rollback transaction
+        }
+      });
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Critical error in deleteUser for ${userId}:`, error);
+      
+      // Fallback: Try to at least mark as deleted without anonymization
+      try {
+        const fallbackResult = await this.db
+          .update(users)
+          .set({ 
+            isDeleted: true,
+            deletedAt: new Date(),
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, userId))
+          .returning({ id: users.id });
+        
+        console.warn(`User ${userId} marked as deleted (fallback mode) - anonymization failed`);
+        return fallbackResult.length > 0;
+      } catch (fallbackError) {
+        console.error(`Fallback deletion also failed for ${userId}:`, fallbackError);
+        return false;
+      }
+    }
   }
 
   // API key management methods

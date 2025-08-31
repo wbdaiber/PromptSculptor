@@ -7,6 +7,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { validateEnv } from "./config/env";
 import { generalLimiter } from "./middleware/rateLimiter";
 import { scheduleTokenCleanup } from "./services/tokenCleanupService.js";
+import { UserCleanupService } from "./services/userCleanupService";
 
 
 const app = express();
@@ -82,15 +83,20 @@ app.use((req, res, next) => {
   const cleanupInterval = process.env.NODE_ENV === 'production' ? 240 : 60; // minutes
   const stopCleanup = scheduleTokenCleanup(cleanupInterval);
   
+  // Start user cleanup service for soft-deleted users
+  UserCleanupService.start();
+  
   // Graceful shutdown handling
   process.on('SIGTERM', () => {
-    log('SIGTERM received, stopping token cleanup scheduler...');
+    log('SIGTERM received, shutting down gracefully...');
     stopCleanup();
+    UserCleanupService.stop();
   });
   
   process.on('SIGINT', () => {
-    log('SIGINT received, stopping token cleanup scheduler...');
+    log('SIGINT received, shutting down gracefully...');
     stopCleanup();
+    UserCleanupService.stop();
     process.exit(0);
   });
   

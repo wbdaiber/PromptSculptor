@@ -115,7 +115,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
                 type="button"
                 variant="link"
                 className="p-0 h-auto text-sm"
-                onClick={() => setLocation('/forgot-password')}
+                onClick={() => setLocation('/app/forgot-password')}
                 disabled={isLoading}
               >
                 Forgot Password?

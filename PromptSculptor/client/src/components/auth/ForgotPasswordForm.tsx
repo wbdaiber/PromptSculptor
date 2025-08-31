@@ -57,7 +57,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
     if (onBackToLogin) {
       onBackToLogin();
     } else {
-      setLocation('/');
+      setLocation('/app');
     }
   };
 

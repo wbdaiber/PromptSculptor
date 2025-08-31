@@ -24,7 +24,7 @@ export default function Recent() {
   // Redirect non-authenticated users to home
   useEffect(() => {
     if (!loading && !user) {
-      setLocation("/");
+      setLocation("/app");
     }
   }, [user, loading, setLocation]);
 

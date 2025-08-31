@@ -1,17 +1,25 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // User table for authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: varchar("username", { length: 50 }).notNull().unique(),
-  email: text("email").notNull().unique(),
+  username: varchar("username", { length: 50 }).notNull(),
+  email: text("email").notNull(),
   passwordHash: text("password_hash").notNull(),
+  deletedAt: timestamp("deleted_at"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Performance optimization: composite index for email lookups
+  emailActiveIdx: index("email_active_idx").on(table.email, table.isDeleted),
+  // Partial unique index - only enforce uniqueness for non-deleted users
+  emailUniqueActiveIdx: index("email_unique_active_idx").on(table.email).where(sql`${table.isDeleted} = false`),
+  usernameUniqueActiveIdx: index("username_unique_active_idx").on(table.username).where(sql`${table.isDeleted} = false`),
+}));
 
 // User API keys table for encrypted storage of user's API keys
 export const userApiKeys = pgTable("user_api_keys", {
@@ -105,7 +113,7 @@ export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
 export type Template = typeof templates.$inferSelect;
 
 export const generatePromptRequestSchema = z.object({
-  naturalLanguageInput: z.string().min(10).max(5000),
+  naturalLanguageInput: z.string().min(10).max(7500),
   templateType: z.enum(['analysis', 'writing', 'coding', 'custom']),
   targetModel: z.enum(['claude', 'gpt', 'gemini']),
   complexityLevel: z.enum(['simple', 'detailed', 'comprehensive']),

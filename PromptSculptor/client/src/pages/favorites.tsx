@@ -24,7 +24,7 @@ export default function Favorites() {
   // Redirect non-authenticated users to home
   useEffect(() => {
     if (!loading && !user) {
-      setLocation("/");
+      setLocation("/app");
     }
   }, [user, loading, setLocation]);
 

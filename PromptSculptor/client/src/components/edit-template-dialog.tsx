@@ -191,11 +191,11 @@ export default function EditTemplateDialog({
               onChange={(e) => setSampleInput(e.target.value)}
               placeholder="The natural language input that will be pre-filled when this template is selected"
               className="min-h-[120px]"
-              maxLength={5000}
+              maxLength={7500}
               required
             />
             <div className="text-sm text-slate-500">
-              {sampleInput.length}/5000 characters
+              {sampleInput.length}/7500 characters
             </div>
           </div>
 

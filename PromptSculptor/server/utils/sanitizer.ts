@@ -71,7 +71,7 @@ export function sanitizeTitle(title: string, maxLength: number = 255): string {
 export function sanitizePromptRequest(request: any) {
   return {
     ...request,
-    naturalLanguageInput: sanitizeInput(request.naturalLanguageInput, 5000),
+    naturalLanguageInput: sanitizeInput(request.naturalLanguageInput, 7500),
     // Sanitize any other string fields that might contain user input
     ...(request.customInstructions && {
       customInstructions: sanitizeInput(request.customInstructions, 2000)

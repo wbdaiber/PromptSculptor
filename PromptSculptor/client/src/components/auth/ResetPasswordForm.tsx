@@ -86,7 +86,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token: pro
   };
 
   const handleBackToLogin = () => {
-    setLocation('/');
+    setLocation('/app');
   };
 
   // Check if token is provided

@@ -87,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...req.body,
             name: sanitizeTitle(req.body.name || 'Custom Template', 100),
             description: sanitizeOutput(req.body.description || '', 500),
-            sampleInput: sanitizeOutput(req.body.sampleInput || '', 5000),
+            sampleInput: sanitizeOutput(req.body.sampleInput || '', 7500),
             userId: req.userId || null,
             isDefault: false, // User-created templates are never default
           });
@@ -114,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         name: sanitizeTitle(req.body.name || 'Custom Template', 100),
         description: sanitizeOutput(req.body.description || '', 500),
-        sampleInput: sanitizeOutput(req.body.sampleInput || '', 5000),
+        sampleInput: sanitizeOutput(req.body.sampleInput || '', 7500),
         userId: req.userId || null,
         isDefault: false, // User-created templates are never default
       });
@@ -155,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...req.body,
             name: req.body.name ? sanitizeTitle(req.body.name, 100) : undefined,
             description: req.body.description ? sanitizeOutput(req.body.description, 500) : undefined,
-            sampleInput: req.body.sampleInput ? sanitizeOutput(req.body.sampleInput, 5000) : undefined,
+            sampleInput: req.body.sampleInput ? sanitizeOutput(req.body.sampleInput, 7500) : undefined,
           });
 
           const userStorage = createStorage(req.userId);
@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         name: req.body.name ? sanitizeTitle(req.body.name, 100) : undefined,
         description: req.body.description ? sanitizeOutput(req.body.description, 500) : undefined,
-        sampleInput: req.body.sampleInput ? sanitizeOutput(req.body.sampleInput, 5000) : undefined,
+        sampleInput: req.body.sampleInput ? sanitizeOutput(req.body.sampleInput, 7500) : undefined,
       });
 
       const userStorage = createStorage(req.userId);

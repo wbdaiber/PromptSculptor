@@ -8,6 +8,20 @@
       "when": 1756573593945,
       "tag": "0000_freezing_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1756589679865,
+      "tag": "0001_typical_triathlon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1756602699054,
+      "tag": "0002_majestic_satana",
+      "breakpoints": true
     }
   ]
 }

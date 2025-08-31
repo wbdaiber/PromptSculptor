@@ -20,6 +20,10 @@ export interface IStorage {
   createTemplate(template: InsertTemplate): Promise<Template>;
   updateTemplate(id: string, template: Partial<InsertTemplate>): Promise<Template | undefined>;
   deleteTemplate(id: string): Promise<boolean>;
+  
+  // Password reset token methods for cleanup service
+  cleanupExpiredTokens?(): Promise<number>;
+  invalidateUserTokens?(userId: string): Promise<number>;
 }
 
 export class MemStorage implements IStorage {

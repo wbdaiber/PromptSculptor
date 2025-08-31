@@ -108,7 +108,7 @@ export default function FavoritePrompts() {
   };
 
   const handleViewAll = () => {
-    setLocation("/favorites");
+    setLocation("/app/favorites");
   };
 
   if (prompts.length === 0 && !isLoading) {

@@ -110,7 +110,7 @@ export default function RecentPrompts() {
   };
 
   const handleViewAll = () => {
-    setLocation("/recent");
+    setLocation("/app/recent");
   };
 
   const getTemplateIcon = (templateType: string) => {

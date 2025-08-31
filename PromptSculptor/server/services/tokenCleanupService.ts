@@ -30,7 +30,7 @@ export async function cleanupExpiredTokens(): Promise<CleanupResult> {
     const storage = createStorage();
     
     // Clean up expired tokens
-    const deletedTokens = await storage.cleanupExpiredTokens();
+    const deletedTokens = await storage.cleanupExpiredTokens?.() || 0;
     
     console.log(`✅ Token cleanup completed: ${deletedTokens} expired tokens removed`);
     
@@ -119,7 +119,7 @@ export async function cleanupUserTokens(userId: string): Promise<number> {
     console.log(`🧹 Cleaning up all tokens for user: ${userId}`);
     
     const storage = createStorage();
-    const deletedCount = await storage.invalidateUserTokens(userId);
+    const deletedCount = await storage.invalidateUserTokens?.(userId) || 0;
     
     console.log(`✅ Cleaned up ${deletedCount} tokens for user ${userId}`);
     return deletedCount;
