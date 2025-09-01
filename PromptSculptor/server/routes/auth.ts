@@ -8,6 +8,7 @@ import { passwordResetLimiter } from '../middleware/rateLimiter';
 import { generateResetToken, hashToken } from '../services/tokenService';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '../services/emailService';
 import { forgotPasswordSchema, resetPasswordSchema } from '../../shared/schema';
+import { cacheInvalidationService } from '../services/cacheInvalidationService';
 
 const router = Router();
 
@@ -62,6 +63,9 @@ router.post('/register', async (req: Request, res: Response) => {
     
     // Create new user
     const user = await dbStorage.createUser(sanitizedUsername, sanitizedEmail, password);
+    
+    // Invalidate caches after user creation
+    cacheInvalidationService.onUserCreated(user.id);
     
     // Send welcome email (non-blocking - registration succeeds even if email fails)
     try {
@@ -281,6 +285,9 @@ router.delete('/account', async (req: Request, res: Response) => {
     // Clear user's API client cache before account deletion
     UserApiKeyManager.clearUserCache(req.user.id);
     
+    // Invalidate all caches related to the deleted user
+    cacheInvalidationService.onUserDeleted(req.user.id);
+    
     // Log out the user and destroy session
     req.logout((err) => {
       if (err) {
@@ -347,6 +354,9 @@ router.post('/forgot-password', passwordResetLimiter, async (req: Request, res: 
         expiresAt: tokenData.expiresAt,
         used: false
       });
+      
+      // Invalidate security metrics cache after token creation
+      cacheInvalidationService.onPasswordResetTokenChanged();
     } catch (dbError) {
       console.error('Database error creating password reset token:', dbError);
       return res.status(500).json({
@@ -440,6 +450,9 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     
     // Mark token as used first (prevents race conditions)
     const tokenMarkedUsed = await dbStorage.markTokenAsUsed(tokenRecord.id);
+    
+    // Invalidate security metrics cache after token usage
+    cacheInvalidationService.onPasswordResetTokenChanged();
     if (!tokenMarkedUsed) {
       console.error(`Failed to mark token as used: ${tokenRecord.id}`);
       return res.status(500).json({
@@ -525,6 +538,9 @@ router.post('/api-keys', async (req: Request, res: Response) => {
       keyName
     );
     
+    // Invalidate caches after API key change
+    cacheInvalidationService.onApiKeyChanged(req.user.id);
+    
     res.status(201).json({ 
       message: 'API key saved successfully',
       key: {
@@ -593,6 +609,9 @@ router.delete('/api-keys/:keyId', async (req: Request, res: Response) => {
         message: 'API key not found or access denied'
       });
     }
+    
+    // Invalidate caches after API key deletion
+    cacheInvalidationService.onApiKeyChanged(req.user.id);
     
     res.json({ message: 'API key deleted successfully' });
   } catch (error) {

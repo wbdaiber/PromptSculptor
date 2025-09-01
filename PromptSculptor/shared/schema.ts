@@ -29,7 +29,10 @@ export const userApiKeys = pgTable("user_api_keys", {
   encryptedKey: text("encrypted_key").notNull(),
   keyName: text("key_name"), // Optional user-friendly name
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Index for API adoption metrics and admin analytics
+  userIdIdx: index("user_api_keys_user_id_idx").on(table.userId),
+}));
 
 // Password reset tokens table for secure password recovery
 export const passwordResetTokens = pgTable("password_reset_tokens", {
@@ -39,7 +42,14 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Index for token validation and lookup performance
+  tokenIdx: index("password_reset_tokens_token_idx").on(table.token),
+  // Index for user tokens lookup
+  userIdIdx: index("password_reset_tokens_user_id_idx").on(table.userId),
+  // Index for cleanup operations and security monitoring
+  expiresAtIdx: index("password_reset_tokens_expires_at_idx").on(table.expiresAt),
+}));
 
 // Updated prompts table with user relationship
 export const prompts = pgTable("prompts", {
@@ -57,7 +67,14 @@ export const prompts = pgTable("prompts", {
   isFavorite: boolean("is_favorite").notNull().default(false),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // Optional for backward compatibility
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Index for user's prompts queries ordered by creation time (admin analytics)
+  userIdCreatedIdx: index("prompts_user_id_created_idx").on(table.userId, table.createdAt),
+  // Index for favorite prompts filtering (admin analytics)
+  userIdFavoriteIdx: index("prompts_user_favorite_idx").on(table.userId, table.isFavorite).where(sql`${table.isFavorite} = true`),
+  // Index for template type filtering (admin analytics)
+  templateTypeIdx: index("prompts_template_type_idx").on(table.templateType),
+}));
 
 export const templates = pgTable("templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -71,7 +88,12 @@ export const templates = pgTable("templates", {
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }), // null for default system templates
   isDefault: boolean("is_default").notNull().default(false), // true for system templates
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Index for template type and default queries (admin analytics)
+  typeDefaultIdx: index("templates_type_default_idx").on(table.type, table.isDefault),
+  // Index for user templates ordered by creation
+  userIdCreatedIdx: index("templates_user_id_created_idx").on(table.userId, table.createdAt),
+}));
 
 // Zod schemas for database operations
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -136,3 +158,18 @@ export const resetPasswordSchema = z.object({
 
 export type ForgotPasswordRequest = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;
+
+
+// Session storage table for OAuth admin authentication
+export const userSessions = pgTable("user_sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+}, (table) => ({
+  // Index for session cleanup operations
+  expireIdx: index("user_sessions_expire_idx").on(table.expire),
+}));
+
+// Session table TypeScript types
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = typeof userSessions.$inferInsert;

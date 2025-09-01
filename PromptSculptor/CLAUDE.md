@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. Updated 08-30-2025.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. Updated 08-31-2025.
 
 ## Development Commands
 
@@ -59,6 +59,39 @@ npx tsx server/scripts/securityAudit.ts              # Comprehensive security au
 - Database schema definitions using Drizzle ORM
 - Zod schemas for validation
 - Shared types between client and server
+
+**Static Landing Page (`/client/public/`)**
+- Static HTML landing page served at root URL (`/`)
+- SEO-optimized with professional meta tags and OpenGraph properties
+- Pure HTML/CSS design with no JavaScript dependencies for fast loading
+- Responsive design with gradient background and feature grid layout
+- Links to React app at `/app` route for user entry point
+
+### Routing Architecture (Updated Aug 31, 2025)
+
+**URL Structure**:
+- **Landing Page**: `/` - Static HTML marketing page with SEO optimization
+- **React Application**: `/app` - Main application entry point (replaces previous `/`)
+- **App Routes**: All React routes prefixed with `/app`:
+  - `/app/favorites` - User's favorite prompts dashboard
+  - `/app/recent` - User's recent prompts dashboard
+  - `/app/support` - Support page
+  - `/app/documentation` - Comprehensive documentation
+  - `/app/forgot-password` - Password recovery
+  - `/app/reset-password/:token` - Password reset completion
+- **API Routes**: `/api/*` - Backend API endpoints (unchanged)
+
+**Implementation Details**:
+- **Server Routing** (`server/vite.ts`): Development and production servers handle landing page at root
+- **React Router** (`client/src/App.tsx`): All routes updated with `/app` prefix, maintains backward compatibility
+- **Navigation Updates**: All `setLocation()` calls updated throughout components to use new routing structure
+- **Vite Configuration**: Static assets from `client/public/` copied to build output for production deployment
+
+**Benefits**:
+- **SEO Optimization**: Static landing page at root URL for better search engine indexing
+- **Clear Separation**: Marketing content vs application functionality
+- **Performance**: Landing page loads instantly with no JavaScript bundle
+- **User Experience**: Professional entry point with clear call-to-action to enter app
 
 ### Key Services
 
@@ -397,6 +430,66 @@ npx tsx server/scripts/securityAudit.ts              # Comprehensive security au
 - **Token Security Testing**: Cryptographic randomness and hashing validation
 
 **Production Status**: ✅ **ENTERPRISE-READY** with comprehensive security audit completion (19/20 tests passed, 1 minor warning)
+
+### Admin OAuth Authentication System (Aug 31, 2025)
+
+**Complete Implementation**: Google OAuth-based admin authentication system replacing API key authentication for enhanced security and user experience.
+
+**Architecture Components**:
+- **OAuth Configuration** (`server/config/oauth.ts`): Google OAuth strategy with email whitelist and admin user management
+- **Admin Routes** (`server/routes/adminAuth.ts`): Complete OAuth flow handling with session management and user validation
+- **Session Management** (`server/middleware/session.ts`): Dual serialization system handling both database users and OAuth admin users
+- **Monitoring Integration** (`server/routes/monitoring.ts`): All admin endpoints now use OAuth authentication instead of API keys
+
+**OAuth Features**:
+- **Email Whitelist**: Only authorized email addresses specified in `ADMIN_ALLOWED_EMAILS` can access admin dashboard
+- **Google Integration**: Professional "Sign in with Google" flow with account selection prompt
+- **Session Management**: Long-lived sessions without client-side expiration (server-side validation)
+- **Return URL Support**: Automatic redirection to intended admin page after authentication
+- **Error Handling**: Comprehensive OAuth failure handling with user-friendly error messages
+
+**Frontend Components**:
+- **AdminAuthContext** (`client/src/context/AdminAuthContext.tsx`): **UPDATED** - OAuth-based authentication context with server-side session validation
+- **AdminLogin** (`client/src/components/admin/AdminLogin.tsx`): **REDESIGNED** - Google OAuth login interface replacing API key form
+- **Session Validation**: Automatic authentication status checking on app load with server-side verification
+
+**Security Improvements**:
+- **No Session Expiration**: Eliminated 2-hour session timeout requirement
+- **Server-Side Validation**: Authentication status validated with server on each admin route access
+- **Email Authorization**: Access restricted to specific Google accounts defined in environment variables
+- **OAuth Security**: Leverages Google's enterprise OAuth security infrastructure
+- **Session Cookies**: Secure HTTP-only session cookies with proper CSRF protection
+- **Dual User Serialization**: Admin OAuth users serialized as JSON objects in sessions (no database dependency), regular users by ID lookup
+
+**Environment Configuration**:
+```bash
+# Google OAuth Configuration (replaces ADMIN_API_KEY)
+GOOGLE_CLIENT_ID=your-google-client-id-here
+GOOGLE_CLIENT_SECRET=your-google-client-secret-here
+ADMIN_ALLOWED_EMAILS=admin@yourdomain.com,backup-admin@yourdomain.com
+
+# OAuth Callback URL: http://localhost:5001/api/admin/auth/google/callback
+```
+
+**OAuth Setup Process**:
+1. Create OAuth 2.0 credentials in Google Cloud Console
+2. Configure authorized redirect URI: `http://localhost:5001/api/admin/auth/google/callback`
+3. Set environment variables for client ID, secret, and allowed emails
+4. Admin users authenticate via `/app/admin/login` using Google accounts
+
+**Key Benefits**:
+- **Enhanced Security**: No API key management or rotation required
+- **User Experience**: Familiar Google OAuth flow with no session timeouts
+- **Access Control**: Granular email-based access control for multiple admins
+- **Enterprise Integration**: Seamless integration with existing Google Workspace accounts
+
+**Migration Notes**:
+- **API Key System**: `ADMIN_API_KEY` environment variable is now optional and deprecated
+- **Backward Compatibility**: All existing admin dashboard functionality preserved
+- **Session Storage**: Uses secure HTTP-only cookies instead of API key headers
+- **Monitoring Routes**: All `/api/monitoring/*` endpoints now require OAuth authentication
+
+**Status**: ✅ **PRODUCTION READY** - Complete OAuth implementation with email whitelist and secure session management
 
 **Recent Fixes (Aug 30, 2025)**:
 - **URL Format Compatibility**: Enhanced password reset system to handle both URL formats

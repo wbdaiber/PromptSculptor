@@ -11,6 +11,8 @@ import { sanitizePromptRequest, sanitizeTitle, sanitizeOutput } from "./utils/sa
 import { setupSession, extractUserId, requireAuth, optionalAuth } from "./middleware/session";
 import authRoutes from "./routes/auth";
 import monitoringRoutes from "./routes/monitoring";
+import adminAuthRoutes from "./routes/adminAuth";
+import { cacheInvalidationService } from "./services/cacheInvalidationService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session management and passport authentication
@@ -18,6 +20,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Authentication routes
   app.use('/api/auth', authRoutes);
+  
+  // Admin OAuth authentication routes
+  app.use('/api/admin/auth', adminAuthRoutes);
   
   // Monitoring routes (admin endpoints)
   app.use('/api/monitoring', monitoringRoutes);
@@ -94,6 +99,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const userStorage = createStorage(req.userId);
           const newTemplate = await userStorage.createTemplate(templateData);
+          
+          // Invalidate template caches
+          if (req.userId) {
+            cacheInvalidationService.onTemplateChanged(req.userId);
+          }
+          
           res.status(201).json(newTemplate);
         } catch (error) {
           if (error instanceof z.ZodError) {
@@ -121,6 +132,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userStorage = createStorage(req.userId);
       const newTemplate = await userStorage.createTemplate(templateData);
+      
+      // Invalidate template caches
+      if (req.userId) {
+        cacheInvalidationService.onTemplateChanged(req.userId);
+      }
+      
       res.status(201).json(newTemplate);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -163,6 +180,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!updatedTemplate) {
             return res.status(404).json({ message: "Template not found or cannot be updated" });
           }
+          
+          // Invalidate template caches
+          if (req.userId) {
+            cacheInvalidationService.onTemplateChanged(req.userId);
+          }
+          
           res.json(updatedTemplate);
         } catch (error) {
           if (error instanceof z.ZodError) {
@@ -191,6 +214,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedTemplate) {
         return res.status(404).json({ message: "Template not found or cannot be updated" });
       }
+      
+      // Invalidate template caches
+      if (req.userId) {
+        cacheInvalidationService.onTemplateChanged(req.userId);
+      }
+      
       res.json(updatedTemplate);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -225,6 +254,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!deleted) {
             return res.status(404).json({ message: "Template not found or cannot be deleted" });
           }
+          
+          // Invalidate template caches
+          if (req.userId) {
+            cacheInvalidationService.onTemplateChanged(req.userId);
+          }
+          
           res.json({ message: "Template deleted successfully" });
         } catch (error) {
           res.status(500).json({ message: "Failed to delete template" });
@@ -239,6 +274,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Template not found or cannot be deleted" });
       }
+      
+      // Invalidate template caches
+      if (req.userId) {
+        cacheInvalidationService.onTemplateChanged(req.userId);
+      }
+      
       res.json({ message: "Template deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete template" });
@@ -288,6 +329,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         savedPrompt = await userStorage.createPrompt(promptData);
+        
+        // Invalidate caches after prompt creation
+        if (savedPrompt && savedPrompt.id) {
+          cacheInvalidationService.onPromptCreated(req.userId, savedPrompt.id);
+        }
         
         response = {
           ...result,
@@ -426,6 +472,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Prompt not found or access denied" });
       }
       
+      // Invalidate caches after favorite status change
+      if (req.userId) {
+        cacheInvalidationService.onPromptUpdated(req.userId, req.params.id, { isFavorite });
+      }
+      
       res.json(updatedPrompt);
     } catch (error) {
       console.error('Favorite toggle error:', error);
@@ -507,6 +558,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!updated) {
             return res.status(404).json({ message: "Prompt not found" });
           }
+          
+          // Invalidate caches after prompt update
+          if (req.userId) {
+            cacheInvalidationService.onPromptUpdated(req.userId, req.params.id, {});
+          }
+          
           res.json(updated);
         } catch (error) {
           if (error instanceof z.ZodError) {
@@ -537,6 +594,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updated) {
         return res.status(404).json({ message: "Prompt not found" });
       }
+      
+      // Invalidate caches after prompt update
+      if (req.userId) {
+        cacheInvalidationService.onPromptUpdated(req.userId, req.params.id, {});
+      }
+      
       res.json(updated);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -571,6 +634,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!deleted) {
             return res.status(404).json({ message: "Prompt not found" });
           }
+          
+          // Invalidate caches after prompt deletion
+          if (req.userId) {
+            cacheInvalidationService.onPromptDeleted(req.userId, req.params.id);
+          }
+          
           res.json({ message: "Prompt deleted successfully" });
         } catch (error) {
           res.status(500).json({ message: "Failed to delete prompt" });
@@ -585,6 +654,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Prompt not found" });
       }
+      
+      // Invalidate caches after prompt deletion
+      if (req.userId) {
+        cacheInvalidationService.onPromptDeleted(req.userId, req.params.id);
+      }
+      
       res.json({ message: "Prompt deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete prompt" });

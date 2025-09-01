@@ -73,8 +73,18 @@ class MonitoringService {
   /**
    * Record password reset metrics
    */
-  recordMetric(metricName: keyof PasswordResetMetrics, value: number): void {
-    this.metrics[metricName] = value;
+  recordMetric(metricName: keyof PasswordResetMetrics, value: number | Array<{reason: string; count: number}>): void {
+    // Type guard for topFailureReasons
+    if (metricName === 'topFailureReasons') {
+      if (Array.isArray(value)) {
+        this.metrics[metricName] = value;
+      } else {
+        console.warn('topFailureReasons should be an array, ignoring numeric value');
+        return;
+      }
+    } else {
+      this.metrics[metricName] = value as number;
+    }
     
     console.log(`📊 Metric recorded: ${metricName} = ${value}`);
     

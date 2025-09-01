@@ -11,11 +11,17 @@ declare global {
   namespace Express {
     interface User {
       id: string;
-      username: string;
+      username?: string; // Optional for OAuth users
       email: string;
+      name?: string; // For OAuth users
+      picture?: string; // For OAuth users
+      provider?: 'local' | 'google'; // Authentication provider
     }
     interface Request {
       userId?: string;
+    }
+    interface Session {
+      adminReturnTo?: string;
     }
   }
 }
@@ -74,7 +80,7 @@ function setupPassport() {
           return done(null, false, { message: 'Invalid email or password' });
         }
         
-        return done(null, { id: user.id, username: user.username, email: user.email });
+        return done(null, { id: user.id, username: user.username, email: user.email, provider: 'local' });
       } catch (error) {
         return done(error);
       }
@@ -83,15 +89,40 @@ function setupPassport() {
   
   // Serialize user for session
   passport.serializeUser((user: Express.User, done) => {
-    done(null, user.id);
+    // For admin OAuth users, serialize the full user object
+    if (user.provider === 'google' && user.id.startsWith('google:')) {
+      done(null, JSON.stringify(user));
+    } else {
+      // For regular users, just serialize the ID
+      done(null, user.id);
+    }
   });
   
   // Deserialize user from session
   passport.deserializeUser(async (id: string, done) => {
     try {
+      // Check if this is a serialized admin OAuth user (JSON string)
+      if (id.startsWith('{') && id.includes('"provider":"google"')) {
+        try {
+          const adminUser = JSON.parse(id);
+          done(null, adminUser);
+          return;
+        } catch (parseError) {
+          console.error('Failed to parse admin user from session:', parseError);
+          done(null, false);
+          return;
+        }
+      }
+      
+      // Regular database user lookup
       const user = await dbStorage.getUserById(id);
       if (user) {
-        done(null, { id: user.id, username: user.username, email: user.email });
+        done(null, { 
+          id: user.id, 
+          username: user.username, 
+          email: user.email, 
+          provider: 'local' 
+        });
       } else {
         done(null, false);
       }
