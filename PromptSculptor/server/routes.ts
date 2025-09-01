@@ -5,14 +5,49 @@ import { generateStructuredPrompt, type UserContext } from "./services/promptGen
 import { DatabaseStorage } from "./databaseStorage";
 import { generatePromptRequestSchema, insertPromptSchema, insertTemplateSchema } from "../shared/schema.js";
 import { z } from "zod";
-import { requireApiKey, optionalApiKey, getAuthStatus } from "./middleware/basicAuth";
+import { requireApiKey, getAuthStatus } from "./middleware/basicAuth";
 import { aiLimiter, modificationLimiter } from "./middleware/rateLimiter";
 import { sanitizePromptRequest, sanitizeTitle, sanitizeOutput } from "./utils/sanitizer";
-import { setupSession, extractUserId, requireAuth, optionalAuth } from "./middleware/session";
+import { setupSession, extractUserId } from "./middleware/session";
+import { validateUserContext, validateAuthenticatedContext } from "./middleware/contextValidation";
 import authRoutes from "./routes/auth";
 import monitoringRoutes from "./routes/monitoring";
 import adminAuthRoutes from "./routes/adminAuth";
 import { cacheInvalidationService } from "./services/cacheInvalidationService";
+import { DemoModeService } from "./services/demoModeService";
+
+// Helper function for template creation
+async function handleTemplateCreation(req: any, res: any) {
+  try {
+    // Validate and sanitize the template data
+    const templateData = insertTemplateSchema.parse({
+      ...req.body,
+      name: sanitizeTitle(req.body.name || 'Custom Template', 100),
+      description: sanitizeOutput(req.body.description || '', 500),
+      sampleInput: sanitizeOutput(req.body.sampleInput || '', 7500),
+      userId: req.userId || null,
+      isDefault: false, // User-created templates are never default
+    });
+
+    const userStorage = createStorage(req.userId);
+    const newTemplate = await userStorage.createTemplate(templateData);
+    
+    // Invalidate template caches
+    if (req.userId) {
+      cacheInvalidationService.onTemplateChanged(req.userId);
+    }
+    
+    res.status(201).json(newTemplate);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: "Invalid template data",
+        details: error.errors
+      });
+    }
+    res.status(500).json({ message: "Failed to create template" });
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session management and passport authentication
@@ -38,7 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get all templates - filtered by user context
-  app.get("/api/templates", extractUserId, async (req, res) => {
+  app.get("/api/templates", extractUserId, validateUserContext, async (req, res) => {
     try {
       // Set no-cache headers to prevent browser caching of user data
       res.set({
@@ -57,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get template by ID - filtered by user context
-  app.get("/api/templates/:id", extractUserId, async (req, res) => {
+  app.get("/api/templates/:id", extractUserId, validateUserContext, async (req, res) => {
     try {
       const userStorage = createStorage(req.userId); // Pass user context for proper filtering
       const template = await userStorage.getTemplate(req.params.id);
@@ -83,75 +118,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
     
-    // Validate API key if provided (for external API access)
-    if (isApiKeyAuth && !isSessionAuth) {
-      return requireApiKey(req, res, async () => {
-        try {
-          // Validate and sanitize the template data
-          const templateData = insertTemplateSchema.parse({
-            ...req.body,
-            name: sanitizeTitle(req.body.name || 'Custom Template', 100),
-            description: sanitizeOutput(req.body.description || '', 500),
-            sampleInput: sanitizeOutput(req.body.sampleInput || '', 7500),
-            userId: req.userId || null,
-            isDefault: false, // User-created templates are never default
-          });
-
-          const userStorage = createStorage(req.userId);
-          const newTemplate = await userStorage.createTemplate(templateData);
-          
-          // Invalidate template caches
-          if (req.userId) {
-            cacheInvalidationService.onTemplateChanged(req.userId);
-          }
-          
-          res.status(201).json(newTemplate);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            return res.status(400).json({ 
-              error: "Invalid template data",
-              details: error.errors
-            });
-          }
-          res.status(500).json({ message: "Failed to create template" });
-        }
+    // Apply context validation for session auth, skip for API key auth
+    if (isSessionAuth && !isApiKeyAuth) {
+      return validateAuthenticatedContext(req, res, async () => {
+        await handleTemplateCreation(req, res);
       });
     }
     
-    // For session-based authentication, proceed directly
-    try {
-      // Validate and sanitize the template data
-      const templateData = insertTemplateSchema.parse({
-        ...req.body,
-        name: sanitizeTitle(req.body.name || 'Custom Template', 100),
-        description: sanitizeOutput(req.body.description || '', 500),
-        sampleInput: sanitizeOutput(req.body.sampleInput || '', 7500),
-        userId: req.userId || null,
-        isDefault: false, // User-created templates are never default
-      });
-
-      const userStorage = createStorage(req.userId);
-      const newTemplate = await userStorage.createTemplate(templateData);
-      
-      // Invalidate template caches
-      if (req.userId) {
-        cacheInvalidationService.onTemplateChanged(req.userId);
-      }
-      
-      res.status(201).json(newTemplate);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          error: "Invalid template data",
-          details: error.errors
-        });
-      }
-      res.status(500).json({ message: "Failed to create template" });
+    // Validate API key if provided (for external API access)
+    if (isApiKeyAuth && !isSessionAuth) {
+      return requireApiKey(req, res, () => handleTemplateCreation(req, res));
     }
+    
+    // For session-based authentication, proceed directly
+    await handleTemplateCreation(req, res);
   });
 
   // Update template - PROTECTED: Requires authentication and ownership
-  app.put("/api/templates/:id", modificationLimiter, extractUserId, async (req, res) => {
+  app.put("/api/templates/:id", modificationLimiter, extractUserId, validateAuthenticatedContext, async (req, res) => {
     // Allow both API key authentication and session-based authentication
     const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
     const isSessionAuth = req.user && req.userId; // Check both req.user and req.userId
@@ -233,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete template - PROTECTED: Requires authentication and ownership
-  app.delete("/api/templates/:id", modificationLimiter, extractUserId, async (req, res) => {
+  app.delete("/api/templates/:id", modificationLimiter, extractUserId, validateAuthenticatedContext, async (req, res) => {
     // Allow both API key authentication and session-based authentication
     const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
     const isSessionAuth = req.user && req.userId; // Check both req.user and req.userId
@@ -373,7 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Generate structured prompt - ALLOWS unauthenticated demo mode, with rate limiting
-  app.post("/api/prompts/generate", aiLimiter, extractUserId, async (req, res) => {
+  app.post("/api/prompts/generate", aiLimiter, extractUserId, validateUserContext, async (req, res) => {
     // Allow API key authentication, session-based authentication, OR unauthenticated demo mode
     const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
     const isSessionAuth = req.user;
@@ -388,7 +372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get recent prompts - user-specific with optional authentication
-  app.get("/api/prompts/recent", extractUserId, async (req, res) => {
+  app.get("/api/prompts/recent", extractUserId, validateAuthenticatedContext, async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       
@@ -414,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get favorite prompts - PROTECTED: Requires authentication
-  app.get("/api/prompts/favorites", extractUserId, async (req, res) => {
+  app.get("/api/prompts/favorites", extractUserId, validateAuthenticatedContext, async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       
@@ -443,7 +427,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Toggle prompt favorite status - PROTECTED: Requires authentication
-  app.patch("/api/prompts/:id/favorite", modificationLimiter, extractUserId, async (req, res) => {
+  app.patch("/api/prompts/:id/favorite", modificationLimiter, extractUserId, validateAuthenticatedContext, async (req, res) => {
     try {
       // Check authentication
       const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
@@ -488,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all prompts - user-specific with optional authentication
-  app.get("/api/prompts", extractUserId, async (req, res) => {
+  app.get("/api/prompts", extractUserId, validateUserContext, async (req, res) => {
     try {
       // Set no-cache headers to prevent browser caching of user data
       res.set({
@@ -512,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get prompt by ID - user-specific with optional authentication
-  app.get("/api/prompts/:id", extractUserId, async (req, res) => {
+  app.get("/api/prompts/:id", extractUserId, validateUserContext, async (req, res) => {
     try {
       const userStorage = createStorage(req.userId);
       const prompt = await userStorage.getPrompt(req.params.id);
@@ -526,7 +510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update prompt - PROTECTED: Requires authentication (API key OR session) for data modification
-  app.put("/api/prompts/:id", modificationLimiter, extractUserId, async (req, res) => {
+  app.put("/api/prompts/:id", modificationLimiter, extractUserId, validateAuthenticatedContext, async (req, res) => {
     
     // Allow both API key authentication and session-based authentication
     const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
@@ -613,7 +597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete prompt - PROTECTED: Requires authentication (API key OR session) for data modification
-  app.delete("/api/prompts/:id", modificationLimiter, extractUserId, async (req, res) => {
+  app.delete("/api/prompts/:id", modificationLimiter, extractUserId, validateAuthenticatedContext, async (req, res) => {
     // Allow both API key authentication and session-based authentication
     const isApiKeyAuth = req.headers['x-api-key'] || req.headers['authorization'] || req.headers['api-key'];
     const isSessionAuth = req.user && req.userId; // Check both req.user and req.userId

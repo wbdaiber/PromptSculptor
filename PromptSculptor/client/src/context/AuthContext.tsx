@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { getCurrentUser, getUserApiKeys, addUserApiKey, deleteUserApiKey, login as apiLogin, signup as apiSignup, logout as apiLogout, changePassword as apiChangePassword, deleteAccount as apiDeleteAccount } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 
@@ -47,34 +47,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [apiKeys, setApiKeys] = useState<UserApiKey[]>([]);
+  const [authOperationInProgress, setAuthOperationInProgress] = useState(false);
 
-  // Check authentication status on app load
+  // Use ref to track current auth operation
+  const authOperationRef = useRef<Promise<void> | null>(null);
+
+  // Synchronized authentication check with operation locking
   const checkAuth = useCallback(async () => {
-    try {
-      const data = await getCurrentUser();
-      setUser(data.user);
-      if (data.user) {
-        // Load user's API keys if authenticated
-        try {
-          const apiKeyData = await getUserApiKeys();
-          setApiKeys(apiKeyData.keys || apiKeyData);
-        } catch (error) {
-          console.error('Failed to fetch API keys during auth check:', error);
+    // Prevent concurrent auth operations
+    if (authOperationRef.current) {
+      await authOperationRef.current;
+      return;
+    }
+
+    const authOperation = async () => {
+      setAuthOperationInProgress(true);
+      try {
+        const data = await getCurrentUser();
+        setUser(data.user);
+        
+        if (data.user) {
+          try {
+            const apiKeyData = await getUserApiKeys();
+            setApiKeys(apiKeyData.keys || apiKeyData);
+          } catch (error) {
+            console.error('Failed to fetch API keys during auth check:', error);
+            setApiKeys([]);
+          }
+        } else {
           setApiKeys([]);
         }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setUser(null);
+        setApiKeys([]);
+      } finally {
+        setLoading(false);
+        setAuthOperationInProgress(false);
+        authOperationRef.current = null;
       }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    authOperationRef.current = authOperation();
+    return authOperationRef.current;
   }, []);
 
-  // Refresh API keys from server
+  // Synchronized API key refresh with operation check
   const refreshApiKeys = useCallback(async () => {
     if (!user) {
       setApiKeys([]);
+      return;
+    }
+
+    // Don't start new operations during auth operations
+    if (authOperationInProgress) {
       return;
     }
 
@@ -85,56 +111,85 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Failed to fetch API keys:', error);
       setApiKeys([]);
     }
-  }, [user]);
+  }, [user, authOperationInProgress]);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // Login method
+  // Synchronized login with proper state management
   const login = async (email: string, password: string): Promise<void> => {
-    const data = await apiLogin(email, password);
-    setUser(data.user);
-    
-    // Load user's API keys after login
+    if (authOperationInProgress) {
+      throw new Error('Authentication operation in progress');
+    }
+
+    setAuthOperationInProgress(true);
     try {
-      const apiKeyData = await getUserApiKeys();
-      setApiKeys(apiKeyData.keys || apiKeyData);
-    } catch (error) {
-      console.error('Failed to fetch API keys after login:', error);
-      setApiKeys([]);
+      const data = await apiLogin(email, password);
+      setUser(data.user);
+      
+      // Wait for user state to be set before fetching API keys
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      try {
+        const apiKeyData = await getUserApiKeys();
+        setApiKeys(apiKeyData.keys || apiKeyData);
+      } catch (error) {
+        console.error('Failed to fetch API keys after login:', error);
+        setApiKeys([]);
+      }
+    } finally {
+      setAuthOperationInProgress(false);
     }
   };
 
-  // Signup method
+  // Synchronized signup with proper state management
   const signup = async (username: string, email: string, password: string): Promise<void> => {
-    const data = await apiSignup(username, email, password);
-    setUser(data.user);
-    
-    // New users won't have API keys yet, but initialize empty array
-    setApiKeys([]);
-  };
-
-  // Logout method
-  const logout = async (): Promise<void> => {
-    try {
-      await apiLogout();
-    } catch (error) {
-      console.error('Logout request failed, but clearing local state anyway');
+    if (authOperationInProgress) {
+      throw new Error('Authentication operation in progress');
     }
 
-    setUser(null);
-    setApiKeys([]);
-    
-    // Clear all cached query data to prevent showing previous user's data
-    queryClient.clear();
-    
-    // Specifically remove template queries to ensure they are cleared
-    queryClient.removeQueries({ queryKey: ['/api/templates'] });
-    queryClient.removeQueries({ queryKey: ['/api/prompts'] });
-    
-    // Force immediate refetch of templates for demo mode
-    queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
+    setAuthOperationInProgress(true);
+    try {
+      const data = await apiSignup(username, email, password);
+      setUser(data.user);
+      
+      // New users won't have API keys yet, but initialize empty array
+      setApiKeys([]);
+    } finally {
+      setAuthOperationInProgress(false);
+    }
+  };
+
+  // Atomic logout with proper cleanup order
+  const logout = async (): Promise<void> => {
+    if (authOperationInProgress) {
+      return;
+    }
+
+    setAuthOperationInProgress(true);
+    try {
+      // Clear local state first
+      setUser(null);
+      setApiKeys([]);
+      
+      // Then clear caches
+      queryClient.clear();
+      queryClient.removeQueries({ queryKey: ['/api/templates'] });
+      queryClient.removeQueries({ queryKey: ['/api/prompts'] });
+      
+      // Finally make the logout API call
+      try {
+        await apiLogout();
+      } catch (error) {
+        console.error('Logout request failed, but local state cleared');
+      }
+      
+      // Force refetch for demo mode
+      queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
+    } finally {
+      setAuthOperationInProgress(false);
+    }
   };
 
   // Change password method
@@ -142,27 +197,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await apiChangePassword(currentPassword, newPassword);
   };
 
-  // Delete account method
+  // Synchronized delete account with proper cleanup
   const deleteAccount = async (password: string): Promise<void> => {
-    await apiDeleteAccount(password);
-    
-    // After successful account deletion, clear local state as if logging out
-    setUser(null);
-    setApiKeys([]);
-    
-    // Clear all cached query data
-    queryClient.clear();
-    
-    // Specifically remove template and prompt queries
-    queryClient.removeQueries({ queryKey: ['/api/templates'] });
-    queryClient.removeQueries({ queryKey: ['/api/prompts'] });
-    
-    // Force immediate refetch of templates for demo mode
-    queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
+    if (authOperationInProgress) {
+      throw new Error('Authentication operation in progress');
+    }
+
+    setAuthOperationInProgress(true);
+    try {
+      await apiDeleteAccount(password);
+      
+      // After successful account deletion, clear local state as if logging out
+      setUser(null);
+      setApiKeys([]);
+      
+      // Clear all cached query data
+      queryClient.clear();
+      
+      // Specifically remove template and prompt queries
+      queryClient.removeQueries({ queryKey: ['/api/templates'] });
+      queryClient.removeQueries({ queryKey: ['/api/prompts'] });
+      
+      // Force immediate refetch of templates for demo mode
+      queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
+    } finally {
+      setAuthOperationInProgress(false);
+    }
   };
 
-  // Add API key method
+  // Synchronized add API key method
   const addApiKey = async (service: string, apiKey: string, keyName?: string): Promise<void> => {
+    if (authOperationInProgress) {
+      throw new Error('Authentication operation in progress');
+    }
+
     await addUserApiKey(
       service, 
       apiKey, 
@@ -173,8 +241,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await refreshApiKeys();
   };
 
-  // Remove API key method
+  // Synchronized remove API key method
   const removeApiKey = async (keyId: string): Promise<void> => {
+    if (authOperationInProgress) {
+      throw new Error('Authentication operation in progress');
+    }
+
     await deleteUserApiKey(keyId);
 
     // Remove from local state immediately for better UX

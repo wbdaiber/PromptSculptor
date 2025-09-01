@@ -6,6 +6,17 @@ import { DatabaseStorage } from '../databaseStorage';
 import type { Express, Request, Response, NextFunction } from 'express';
 import type { User } from '@shared/schema';
 
+// Request queuing for authentication operations to prevent race conditions
+const authRequestQueue = new Map<string, Promise<void>>();
+
+// User cache to reduce database hits during concurrent requests
+interface CachedUser {
+  user: Express.User;
+  timestamp: number;
+}
+const userCache = new Map<string, CachedUser>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Extend Express Request type to include user
 declare global {
   namespace Express {
@@ -98,7 +109,7 @@ function setupPassport() {
     }
   });
   
-  // Deserialize user from session
+  // Deserialize user from session with caching and queuing
   passport.deserializeUser(async (id: string, done) => {
     try {
       // Check if this is a serialized admin OAuth user (JSON string)
@@ -113,27 +124,100 @@ function setupPassport() {
           return;
         }
       }
-      
-      // Regular database user lookup
-      const user = await dbStorage.getUserById(id);
-      if (user) {
-        done(null, { 
-          id: user.id, 
-          username: user.username, 
-          email: user.email, 
-          provider: 'local' 
-        });
-      } else {
-        done(null, false);
+
+      // Check cache first
+      const cached = userCache.get(id);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        done(null, cached.user);
+        return;
       }
+
+      // Check if there's an ongoing operation for this user
+      if (authRequestQueue.has(id)) {
+        await authRequestQueue.get(id);
+        // Check cache again after waiting
+        const cachedAfterWait = userCache.get(id);
+        if (cachedAfterWait && Date.now() - cachedAfterWait.timestamp < CACHE_TTL) {
+          done(null, cachedAfterWait.user);
+          return;
+        }
+      }
+
+      // Create promise for this operation
+      const operation = (async () => {
+        try {
+          const user = await dbStorage.getUserById(id);
+          if (user) {
+            const userObject = { 
+              id: user.id, 
+              username: user.username, 
+              email: user.email, 
+              provider: 'local' as const
+            };
+            
+            // Cache the result
+            userCache.set(id, {
+              user: userObject,
+              timestamp: Date.now()
+            });
+            
+            done(null, userObject);
+          } else {
+            done(null, false);
+          }
+        } catch (error) {
+          done(error);
+        } finally {
+          authRequestQueue.delete(id);
+        }
+      })();
+
+      authRequestQueue.set(id, operation);
+      await operation;
     } catch (error) {
       done(error);
     }
   });
 }
 
-// Middleware to extract user ID from session
+// Middleware to extract user ID from session with request queuing
 export function extractUserId(req: Request, res: Response, next: NextFunction) {
+  const sessionId = req.sessionID;
+  
+  // If there's no session, continue without user
+  if (!sessionId || !req.user) {
+    next();
+    return;
+  }
+
+  // Check if there's an ongoing auth operation for this session
+  if (authRequestQueue.has(sessionId)) {
+    // Wait for the ongoing operation to complete
+    authRequestQueue.get(sessionId)!.then(() => {
+      if (req.user) {
+        req.userId = req.user.id;
+        
+        // Validate user context consistency
+        if (req.userId && req.user.id && req.userId !== req.user.id) {
+          console.warn(`User context mismatch in session ${sessionId}: ${req.userId} vs ${req.user.id}`);
+          req.userId = req.user.id; // Use session as source of truth
+        }
+      }
+      
+      // Debug log for troubleshooting user authentication state
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - User ID: ${req.userId || 'ANONYMOUS'} (queued)`);
+      }
+      
+      next();
+    }).catch(error => {
+      console.error('Session auth operation failed:', error);
+      next();
+    });
+    return;
+  }
+
+  // No queued operation, process normally
   if (req.user) {
     req.userId = req.user.id;
   }
@@ -166,3 +250,20 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
   }
   next();
 }
+
+// Cache cleanup function to prevent memory leaks
+export function clearUserCache() {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+  
+  userCache.forEach((cached, userId) => {
+    if (now - cached.timestamp >= CACHE_TTL) {
+      keysToDelete.push(userId);
+    }
+  });
+  
+  keysToDelete.forEach(userId => userCache.delete(userId));
+}
+
+// Periodic cleanup of expired cache entries
+setInterval(clearUserCache, CACHE_TTL);

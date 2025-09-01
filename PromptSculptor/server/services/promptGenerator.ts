@@ -5,6 +5,7 @@ import { type GeneratePromptRequest } from "@shared/schema";
 import { APIKeyManager } from "./apiKeyManager";
 import { UserApiKeyManager } from "./userApiKeyManager";
 import { EnhancedDemoMode, type EnhancedGeneratedPromptResult } from "./enhancedDemoMode";
+import { DemoModeService, type DemoModeContext } from "./demoModeService";
 import type { DatabaseStorage } from "../databaseStorage";
 
 /*
@@ -231,10 +232,24 @@ export async function generateStructuredPrompt(
   request: GeneratePromptRequest, 
   userContext?: UserContext
 ): Promise<GeneratedPromptResult> {
-  // Priority System: User Keys → Enhanced Demo → System Keys (optional)
+  // Build demo mode context
+  const demoContext: DemoModeContext = await buildDemoModeContext(userContext, request.targetModel);
   
-  // First, try user-specific API keys if authenticated
-  if (userContext?.isAuthenticated && userContext?.userId && userContext?.dbStorage) {
+  // Use unified demo mode service for consistent detection
+  const demoResult = DemoModeService.getDemoModeResult(demoContext);
+  
+  if (demoResult.isDemoMode) {
+    // Use enhanced demo mode with unified messaging
+    return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
+      isAuthenticated: demoContext.isAuthenticated,
+      availableServices: demoContext.availableServices,
+      targetModel: request.targetModel,
+      message: demoResult.message
+    });
+  }
+  
+  // User has proper API keys - generate with user client
+  if (userContext?.userId && userContext?.dbStorage) {
     const userClient = await UserApiKeyManager.getUserAIClient(
       userContext.userId,
       request.targetModel,
@@ -244,28 +259,48 @@ export async function generateStructuredPrompt(
     if (userClient) {
       return await generateWithUserClient(request, userClient, request.targetModel);
     }
-    
-    // User is authenticated but lacks specific API key - enhanced demo with guidance
-    return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
-      isAuthenticated: true,
-      availableServices: [],
-      targetModel: request.targetModel,
-      message: `Add your ${getServiceName(request.targetModel)} API key in Settings for AI-powered generation`
-    });
-  }
-  
-  // For unauthenticated users - enhanced demo with signup encouragement
-  if (!userContext?.isAuthenticated) {
-    return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
-      isAuthenticated: false,
-      availableServices: [],
-      targetModel: request.targetModel,
-      message: "Sign up to save prompts and use your own API keys for better results"
-    });
   }
   
   // Fallback to system keys (optional - for admin/testing purposes)
   return generateWithSystemKeys(request);
+}
+
+/**
+ * Builds demo mode context from user context and target model
+ */
+async function buildDemoModeContext(userContext: UserContext | undefined, targetModel: string): Promise<DemoModeContext> {
+  if (!userContext?.isAuthenticated || !userContext?.userId || !userContext?.dbStorage) {
+    return {
+      isAuthenticated: false,
+      hasApiKeys: false,
+      availableServices: [],
+      targetModel
+    };
+  }
+  
+  try {
+    const userApiKeys = await userContext.dbStorage.getUserApiKeys(userContext.userId);
+    const hasApiKeys = userApiKeys && userApiKeys.length > 0;
+    const availableServices = hasApiKeys ? userApiKeys.map((key: any) => key.service) : [];
+    
+    return {
+      isAuthenticated: true,
+      hasApiKeys,
+      availableServices,
+      targetModel,
+      userId: userContext.userId,
+      dbStorage: userContext.dbStorage
+    };
+  } catch (error) {
+    console.error('Error building demo mode context:', error);
+    // Return safe fallback context
+    return {
+      isAuthenticated: userContext.isAuthenticated,
+      hasApiKeys: false,
+      availableServices: [],
+      targetModel
+    };
+  }
 }
 
 function getServiceName(targetModel: string): string {
