@@ -59,8 +59,8 @@ export default function SystemSettings() {
       
       // Determine system status based on data
       const status: SystemStatus = {
-        database: health.checks.find(c => c.name === 'database')?.status === 'pass' ? 'connected' : 'error',
-        email: health.checks.find(c => c.name === 'email')?.status === 'pass' ? 'operational' : 'degraded',
+        database: health.checks.find(c => c.name === 'Database Connection')?.status === 'pass' ? 'connected' : 'error',
+        email: health.checks.find(c => c.name === 'Email Service')?.status === 'pass' ? 'operational' : 'degraded',
         security: health.status === 'healthy' ? 'normal' : 'elevated',
         tokens: (typeof metrics.tokenStatistics === 'object' && 'cleanupRequired' in metrics.tokenStatistics && metrics.tokenStatistics.cleanupRequired > 10) ? 'cleanup_needed' : 'healthy',
       };

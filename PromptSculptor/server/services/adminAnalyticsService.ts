@@ -531,6 +531,134 @@ export class AdminAnalyticsService {
   }
 
   /**
+   * Get API key distribution by service with caching
+   */
+  async getApiKeyDistribution(): Promise<{
+    totalKeys: number;
+    totalUsers: number;
+    serviceDistribution: Array<{
+      service: string;
+      totalKeys: number;
+      usersWithKeys: number;
+      percentage: number;
+    }>;
+  }> {
+    const cacheKey = CacheKeys.apiKeyDistribution();
+    
+    return cacheService.cached(
+      cacheKey,
+      async () => this.fetchApiKeyDistribution(),
+      CacheTTL.apiKeyDistribution
+    );
+  }
+
+  /**
+   * Internal method to fetch API key distribution from database with monitoring
+   */
+  private async fetchApiKeyDistribution(): Promise<{
+    totalKeys: number;
+    totalUsers: number;
+    serviceDistribution: Array<{
+      service: string;
+      totalKeys: number;
+      usersWithKeys: number;
+      percentage: number;
+    }>;
+  }> {
+    const stopTimer = performanceMonitor.startTimer();
+    
+    try {
+      // Get service distribution with totals in a single optimized query
+      const result = await this.db.execute(sql`
+        WITH service_stats AS (
+          SELECT 
+            service,
+            COUNT(*) as total_keys,
+            COUNT(DISTINCT user_id) as users_with_keys
+          FROM user_api_keys 
+          GROUP BY service
+        ),
+        overall_stats AS (
+          SELECT 
+            COUNT(*) as total_keys,
+            COUNT(DISTINCT user_id) as total_users
+          FROM user_api_keys
+        )
+        SELECT 
+          ss.service,
+          ss.total_keys,
+          ss.users_with_keys,
+          CASE 
+            WHEN os.total_users > 0 THEN ROUND(ss.users_with_keys * 100.0 / os.total_users, 2)
+            ELSE 0 
+          END as percentage,
+          os.total_keys as overall_total_keys,
+          os.total_users as overall_total_users
+        FROM service_stats ss
+        CROSS JOIN overall_stats os
+        ORDER BY ss.total_keys DESC
+      `);
+      
+      const duration = stopTimer();
+      this.recordQueryTime('fetchApiKeyDistribution', duration);
+      performanceMonitor.recordQuery(
+        'AdminAnalytics.fetchApiKeyDistribution',
+        duration,
+        true,
+        undefined,
+        'database'
+      );
+
+      const rows = (result as any).rows || result;
+      
+      if (rows.length === 0) {
+        return {
+          totalKeys: 0,
+          totalUsers: 0,
+          serviceDistribution: []
+        };
+      }
+
+      // Extract overall totals from first row
+      const firstRow = rows[0];
+      const totalKeys = Number(firstRow.overall_total_keys || 0);
+      const totalUsers = Number(firstRow.overall_total_users || 0);
+
+      // Build service distribution array
+      const serviceDistribution = rows.map((row: any) => ({
+        service: row.service as string,
+        totalKeys: Number(row.total_keys),
+        usersWithKeys: Number(row.users_with_keys),
+        percentage: Number(row.percentage)
+      }));
+
+      return {
+        totalKeys,
+        totalUsers,
+        serviceDistribution
+      };
+    } catch (error) {
+      const duration = stopTimer();
+      performanceMonitor.recordQuery(
+        'AdminAnalytics.fetchApiKeyDistribution',
+        duration,
+        false,
+        error instanceof Error ? error.message : 'Unknown error',
+        'database'
+      );
+      
+      console.error('❌ [ADMIN ANALYTICS ERROR] Failed to fetch API key distribution:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString(),
+        stack: error instanceof Error ? error.stack : undefined,
+        queryType: 'api-key-distribution'
+      });
+      throw new Error('Failed to fetch API key distribution');
+    }
+  }
+
+  /**
    * Close database connection pool
    */
   static async closePool(): Promise<void> {

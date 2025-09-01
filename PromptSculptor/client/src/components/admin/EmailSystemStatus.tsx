@@ -19,7 +19,7 @@ export default function EmailSystemStatus({ healthData, metricsData, loading }: 
   const { toast } = useToast();
 
   const getEmailStatus = () => {
-    const emailCheck = healthData?.checks?.find(check => check.name === 'email');
+    const emailCheck = healthData?.checks?.find(check => check.name === 'Email Service');
     if (!emailCheck) return { status: 'unknown', message: 'Status unavailable' };
     
     if (emailCheck.status === 'pass') {

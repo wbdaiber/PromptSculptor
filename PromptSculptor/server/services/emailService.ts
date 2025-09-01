@@ -541,3 +541,41 @@ export async function sendTestEmail(recipientEmail: string): Promise<EmailServic
     };
   }
 }
+
+/**
+ * Health check for email service - tests configuration without sending emails
+ * @returns Promise with health status
+ */
+export async function checkEmailHealth(): Promise<{
+  status: 'pass' | 'fail';
+  details?: string;
+}> {
+  try {
+    // Check if Resend is configured
+    if (!resend) {
+      return {
+        status: 'fail',
+        details: 'Email service not configured: RESEND_API_KEY is missing'
+      };
+    }
+
+    if (!config.EMAIL_FROM) {
+      return {
+        status: 'fail',
+        details: 'Email sender not configured: EMAIL_FROM is missing'
+      };
+    }
+
+    // Optional: Test API connectivity (without sending emails)
+    // For now, just check configuration
+    return {
+      status: 'pass',
+      details: 'Email service is properly configured'
+    };
+  } catch (error) {
+    return {
+      status: 'fail',
+      details: error instanceof Error ? error.message : 'Email service health check failed'
+    };
+  }
+}

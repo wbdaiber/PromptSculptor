@@ -164,51 +164,9 @@ class MonitoringService {
       details?: string;
     }>;
   }> {
-    const checks = [];
-
-    // Check database connectivity (simplified)
-    try {
-      // In a real implementation, you'd test database connection
-      checks.push({ name: 'Database Connection', status: 'pass' as const });
-    } catch (error) {
-      checks.push({ 
-        name: 'Database Connection', 
-        status: 'fail' as const, 
-        details: 'Cannot connect to database' 
-      });
-    }
-
-    // Check email service
-    try {
-      // In a real implementation, you'd test email service
-      checks.push({ name: 'Email Service', status: 'pass' as const });
-    } catch (error) {
-      checks.push({ 
-        name: 'Email Service', 
-        status: 'fail' as const, 
-        details: 'Email service unavailable' 
-      });
-    }
-
-    // Check for recent critical events
-    const recentEvents = this.getRecentSecurityEvents(1);
-    const criticalEvents = recentEvents.filter(e => e.severity === 'critical');
-    
-    if (criticalEvents.length === 0) {
-      checks.push({ name: 'Security Status', status: 'pass' as const });
-    } else {
-      checks.push({ 
-        name: 'Security Status', 
-        status: 'fail' as const, 
-        details: `${criticalEvents.length} critical security events in last hour` 
-      });
-    }
-
-    const failedChecks = checks.filter(c => c.status === 'fail');
-    const status = failedChecks.length === 0 ? 'healthy' : 
-                   failedChecks.length <= 1 ? 'degraded' : 'unhealthy';
-
-    return { status, checks };
+    // Import health check function dynamically to avoid circular dependencies
+    const { performSystemHealthCheck } = await import('./healthCheck');
+    return await performSystemHealthCheck();
   }
 
   private getLogLevel(severity: SecurityEvent['severity']): 'log' | 'warn' | 'error' {

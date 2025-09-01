@@ -15,10 +15,12 @@ import {
   getUserEngagementMetrics,
   getUserRetentionStats,
   getUserActivityData,
+  getApiKeyDistribution,
   type UserGrowthData,
   type UserEngagementData,
   type UserRetentionData,
   type UserActivityData,
+  type ApiKeyDistribution,
 } from '@/lib/adminApi';
 import { useAdminAuth } from '@/context/AdminAuthContext';
 
@@ -32,6 +34,7 @@ export interface AdvancedAnalyticsData {
   userEngagement: UserEngagementData;
   userRetention: UserRetentionData;
   userActivity: UserActivityData;
+  apiKeyDistribution: ApiKeyDistribution;
   customMetrics: {
     promptsPerDay: Array<{ date: string; count: number }>;
     templateUsage: Array<{ template: string; count: number; percentage: number }>;
@@ -63,21 +66,23 @@ export default function DatabaseAnalytics() {
       const period = daysDiff <= 7 ? '7d' : daysDiff <= 30 ? '30d' : '90d';
       
       // Fetch all analytics data in parallel
-      const [userGrowth, userEngagement, userRetention, userActivity] = await Promise.all([
+      const [userGrowth, userEngagement, userRetention, userActivity, apiKeyDistribution] = await Promise.all([
         getUserGrowthData(period),
         getUserEngagementMetrics(),
         getUserRetentionStats(),
         getUserActivityData(),
+        getApiKeyDistribution(),
       ]);
 
-      // Generate custom metrics based on existing data
-      const customMetrics = generateCustomMetrics(userActivity, userEngagement, range);
+      // Generate custom metrics based on existing data  
+      const customMetrics = generateCustomMetrics(userActivity, userEngagement, apiKeyDistribution, range);
 
       setData({
         userGrowth,
         userEngagement,
         userRetention,
         userActivity,
+        apiKeyDistribution,
         customMetrics,
       });
     } catch (error) {
@@ -95,6 +100,7 @@ export default function DatabaseAnalytics() {
   const generateCustomMetrics = (
     userActivity: UserActivityData,
     userEngagement: UserEngagementData,
+    apiKeyDistribution: ApiKeyDistribution,
     range: DateRange
   ) => {
     // Generate prompts per day data
@@ -111,12 +117,12 @@ export default function DatabaseAnalytics() {
     // Generate user engagement trends
     const userEngagementTrends = generateEngagementTrends(userEngagement, range);
 
-    // Calculate API key adoption rates
-    const apiKeyAdoption = [
-      { service: 'OpenAI', users: Math.floor(userEngagement.apiKeysConfigured * 0.6), percentage: 60 },
-      { service: 'Anthropic', users: Math.floor(userEngagement.apiKeysConfigured * 0.3), percentage: 30 },
-      { service: 'Google', users: Math.floor(userEngagement.apiKeysConfigured * 0.1), percentage: 10 },
-    ];
+    // Use real API key distribution data instead of hardcoded percentages
+    const apiKeyAdoption = apiKeyDistribution.serviceDistribution.map(service => ({
+      service: service.service === 'gemini' ? 'Google' : service.service.charAt(0).toUpperCase() + service.service.slice(1),
+      users: service.usersWithKeys,
+      percentage: service.percentage,
+    }));
 
     return {
       promptsPerDay,
@@ -327,10 +333,10 @@ export default function DatabaseAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {data.userEngagement.apiKeysConfigured}
+                  {data.apiKeyDistribution.totalKeys}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {Math.round((data.userEngagement.apiKeysConfigured / data.userEngagement.totalUsers) * 100)}% adoption
+                  {data.apiKeyDistribution.totalUsers} users, {Math.round((data.apiKeyDistribution.totalUsers / data.userEngagement.totalUsers) * 100)}% adoption
                 </p>
               </CardContent>
             </Card>

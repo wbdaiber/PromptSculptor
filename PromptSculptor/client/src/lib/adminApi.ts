@@ -211,6 +211,23 @@ export async function getUserActivityData(): Promise<UserActivityData> {
   return result.data;
 }
 
+export interface ApiKeyDistribution {
+  totalKeys: number;
+  totalUsers: number;
+  serviceDistribution: Array<{
+    service: string;
+    totalKeys: number;
+    usersWithKeys: number;
+    percentage: number;
+  }>;
+}
+
+export async function getApiKeyDistribution(): Promise<ApiKeyDistribution> {
+  const response = await adminApiRequest('GET', '/api/monitoring/api-key-distribution');
+  const result = await response.json();
+  return result.distribution;
+}
+
 // Error handling utilities
 export class AdminApiError extends Error {
   constructor(

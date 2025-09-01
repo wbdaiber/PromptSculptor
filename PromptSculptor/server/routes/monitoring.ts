@@ -535,4 +535,25 @@ router.get('/admin/query-stats', requireAdminAuth, async (_req, res) => {
   }
 });
 
+/**
+ * API key distribution endpoint (admin only)
+ * GET /api/monitoring/api-key-distribution
+ * Returns service-specific API key distribution metrics
+ */
+router.get('/api-key-distribution', requireAdminAuth, async (_req, res) => {
+  try {
+    const distribution = await adminAnalyticsService.getApiKeyDistribution();
+    
+    res.json({
+      distribution,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to retrieve API key distribution',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 export default router;

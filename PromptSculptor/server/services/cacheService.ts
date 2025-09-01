@@ -251,6 +251,7 @@ export const CacheKeys = {
   userActivityMetrics: (limit: number) => `admin:analytics:user-activity:${limit}`,
   securityMetrics: () => 'admin:analytics:security',
   performanceMetrics: () => 'admin:analytics:performance',
+  apiKeyDistribution: () => 'admin:analytics:api-key-distribution',
   
   // User-specific cache keys
   userPrompts: (userId: string) => `user:${userId}:prompts`,
@@ -269,6 +270,7 @@ export const CacheTTL = {
   userActivityMetrics: 5 * 60 * 1000,    // 5 minutes
   securityMetrics: 2 * 60 * 1000,        // 2 minutes (more sensitive)
   performanceMetrics: 15 * 60 * 1000,    // 15 minutes
+  apiKeyDistribution: 5 * 60 * 1000,     // 5 minutes
   
   // User data - shorter TTL for better UX
   userPrompts: 1 * 60 * 1000,            // 1 minute

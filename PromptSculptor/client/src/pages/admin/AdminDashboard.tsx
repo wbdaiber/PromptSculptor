@@ -307,11 +307,22 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  Online
+                <div className={`text-2xl font-bold ${
+                  healthData?.status === 'healthy' ? 'text-green-600 dark:text-green-400' :
+                  healthData?.status === 'degraded' ? 'text-yellow-600 dark:text-yellow-400' :
+                  'text-red-600 dark:text-red-400'
+                }`}>
+                  {healthData ? (
+                    healthData.status === 'healthy' ? 'Online' :
+                    healthData.status === 'degraded' ? 'Degraded' :
+                    'Issues Detected'
+                  ) : 'Checking...'}
                 </div>
                 <div className="text-sm text-slate-600 dark:text-slate-400">
-                  All systems operational
+                  {healthData ? (
+                    healthData.status === 'healthy' ? 'All systems operational' :
+                    `${healthData.checks.filter((c: any) => c.status !== 'pass').length} component(s) with issues`
+                  ) : 'Checking system status...'}
                 </div>
               </div>
             </CardContent>

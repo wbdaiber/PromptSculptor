@@ -66,49 +66,46 @@ export default function RealTimeMetrics({
 
   const getLiveMetrics = (): LiveMetric[] => {
     if (!data) return [];
-
-    // Simulate real-time changes by adding small variations
-    const variance = () => (Math.random() - 0.5) * 0.1; // ±5% variance
     
     return [
       {
         id: 'active-users',
         label: 'Active Users',
-        value: Math.floor(data.userEngagement.activeUsers * (1 + variance())),
+        value: data.userEngagement.activeUsers,
         previousValue: data.userEngagement.activeUsers,
-        trend: Math.random() > 0.5 ? 'up' : 'down',
-        changePercent: Math.abs(variance() * 100),
+        trend: 'stable',
+        changePercent: 0,
         icon: Activity,
         color: 'green',
       },
       {
         id: 'prompts-today',
         label: 'Prompts Today',
-        value: Math.floor((data.customMetrics.promptsPerDay[data.customMetrics.promptsPerDay.length - 1]?.count || 0) * (1 + variance())),
+        value: data.customMetrics.promptsPerDay[data.customMetrics.promptsPerDay.length - 1]?.count || 0,
         previousValue: data.customMetrics.promptsPerDay[data.customMetrics.promptsPerDay.length - 1]?.count || 0,
-        trend: 'up',
-        changePercent: Math.abs(variance() * 100),
+        trend: 'stable',
+        changePercent: 0,
         icon: Zap,
         color: 'blue',
       },
       {
         id: 'api-keys',
         label: 'API Keys Active',
-        value: Math.floor(data.userEngagement.apiKeysConfigured * (1 + variance() * 0.5)),
+        value: data.userEngagement.apiKeysConfigured,
         previousValue: data.userEngagement.apiKeysConfigured,
         trend: 'stable',
-        changePercent: Math.abs(variance() * 50),
+        changePercent: 0,
         icon: TrendingUp,
         color: 'purple',
       },
       {
         id: 'retention-rate',
         label: 'Retention Rate',
-        value: Math.round(data.userRetention.retentionRate * (1 + variance() * 0.2)),
+        value: Math.round(data.userRetention.retentionRate),
         previousValue: Math.round(data.userRetention.retentionRate),
         unit: '%',
-        trend: Math.random() > 0.6 ? 'up' : 'stable',
-        changePercent: Math.abs(variance() * 20),
+        trend: 'stable',
+        changePercent: 0,
         icon: Clock,
         color: 'orange',
       },
