@@ -26,6 +26,7 @@ import SecurityEventTimeline from '@/components/admin/SecurityEventTimeline';
 import ThreatDetectionPanel from '@/components/admin/ThreatDetectionPanel';
 import FailedLoginTracker from '@/components/admin/FailedLoginTracker';
 import SecurityRecommendations from '@/components/admin/SecurityRecommendations';
+import AdminLayout from '@/components/admin/AdminLayout';
 
 export default function SecurityMonitoring() {
   const [refreshing, setRefreshing] = useState(false);
@@ -95,8 +96,44 @@ export default function SecurityMonitoring() {
 
   if (error) {
     return (
+      <AdminLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                Security Monitoring
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                Real-time security event monitoring and threat detection
+              </p>
+            </div>
+          </div>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Failed to load security data</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                  {error instanceof Error ? error.message : 'Unknown error occurred'}
+                </p>
+                <Button onClick={handleManualRefresh} disabled={refreshing}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                  Try Again
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               Security Monitoring
@@ -105,72 +142,39 @@ export default function SecurityMonitoring() {
               Real-time security event monitoring and threat detection
             </p>
           </div>
-        </div>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Failed to load security data</h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-4">
-                {error instanceof Error ? error.message : 'Unknown error occurred'}
-              </p>
-              <Button onClick={handleManualRefresh} disabled={refreshing}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            Security Monitoring
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Real-time security event monitoring and threat detection
-          </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          {/* Time Filter */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-slate-600 dark:text-slate-400">Last:</span>
-            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-              {[1, 6, 24, 168].map((hours) => (
-                <button
-                  key={hours}
-                  onClick={() => handleTimeFilterChange(hours)}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    timeFilter === hours
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {hours === 1 ? '1h' : hours === 6 ? '6h' : hours === 24 ? '24h' : '7d'}
-                </button>
-              ))}
-            </div>
-          </div>
           
-          <Button 
-            onClick={handleManualRefresh} 
-            disabled={refreshing}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center space-x-3">
+            {/* Time Filter */}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Last:</span>
+              <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                {[1, 6, 24, 168].map((hours) => (
+                  <button
+                    key={hours}
+                    onClick={() => handleTimeFilterChange(hours)}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                      timeFilter === hours
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {hours === 1 ? '1h' : hours === 6 ? '6h' : hours === 24 ? '24h' : '7d'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <Button 
+              onClick={handleManualRefresh} 
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* Security Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -289,6 +293,7 @@ export default function SecurityMonitoring() {
           />
         </div>
       </div>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

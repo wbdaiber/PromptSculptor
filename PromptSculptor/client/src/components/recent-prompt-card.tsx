@@ -21,8 +21,7 @@ const getTemplateIcon = (templateType: string) => {
   return icons[templateType as keyof typeof icons] || icons.custom;
 };
 
-const formatTimeAgo = (dateString: string) => {
-  const date = new Date(dateString);
+const formatTimeAgo = (date: Date) => {
   const now = new Date();
   const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
   
@@ -55,7 +54,7 @@ export default function RecentPromptCard({
             </span>
           </div>
           <span className="text-xs text-slate-400">
-            {formatTimeAgo(prompt.createdAt.toString())}
+            {formatTimeAgo(prompt.createdAt)}
           </span>
         </div>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">

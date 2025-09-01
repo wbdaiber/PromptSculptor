@@ -21,16 +21,16 @@ const getTemplateIcon = (templateType: string) => {
   return icons[templateType as keyof typeof icons] || icons.custom;
 };
 
-const formatTimeAgo = (dateString: string) => {
-  const date = new Date(dateString);
+const formatTimeAgo = (date: Date | string) => {
   const now = new Date();
-  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+  const dateObj = new Date(date);
+  const diffInHours = Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60 * 60));
   
   if (diffInHours < 1) return "Just now";
   if (diffInHours < 24) return `${diffInHours}h ago`;
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}d ago`;
-  return date.toLocaleDateString();
+  return dateObj.toLocaleDateString();
 };
 
 export default function FavoritePromptCard({
@@ -55,7 +55,7 @@ export default function FavoritePromptCard({
             </span>
           </div>
           <span className="text-xs text-slate-400">
-            {formatTimeAgo(prompt.createdAt.toString())}
+            {formatTimeAgo(prompt.createdAt)}
           </span>
         </div>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">

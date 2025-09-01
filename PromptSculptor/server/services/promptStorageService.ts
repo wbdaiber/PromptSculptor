@@ -18,6 +18,8 @@ export class PromptStorageService {
         max: 10,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 2000,
+        // Force timezone to UTC to prevent timestamp interpretation issues
+        options: '--timezone=UTC',
       });
     }
     this.db = drizzle(PromptStorageService.pool);
@@ -127,10 +129,24 @@ export class PromptStorageService {
    */
   async createPrompt(insertPrompt: InsertPrompt): Promise<Prompt> {
     try {
+      // Debug logging for timestamp investigation
+      console.log("=== SERVER PROMPT CREATION DEBUG ===");
+      console.log("Insert prompt data:", insertPrompt);
+      console.log("Server current time (UTC):", new Date().toISOString());
+      console.log("Server current time (local):", new Date().toString());
+      console.log("Server timezone offset (minutes):", new Date().getTimezoneOffset());
+      console.log("======================================");
+      
       const result = await this.db
         .insert(prompts)
         .values(insertPrompt)
         .returning();
+      
+      console.log("=== CREATED PROMPT DEBUG ===");
+      console.log("Created prompt:", result[0]);
+      console.log("Created prompt createdAt:", result[0].createdAt);
+      console.log("Created prompt createdAt (ISO):", new Date(result[0].createdAt).toISOString());
+      console.log("===========================");
       
       return result[0];
     } catch (error) {

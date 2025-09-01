@@ -6,28 +6,28 @@
       "idx": 0,
       "version": "7",
       "when": 1756573593945,
-      "tag": "0000_freezing_shocker",
+      "tag": "2025-08-30_initial_schema",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
       "when": 1756589679865,
-      "tag": "0001_typical_triathlon",
+      "tag": "2025-08-30_add_username_field",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
       "when": 1756602699054,
-      "tag": "0002_majestic_satana",
+      "tag": "2025-08-30_add_favorites_system",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "7",
       "when": 1756661146517,
-      "tag": "0003_serious_paper_doll",
+      "tag": "2025-08-31_add_session_storage_indexes",
       "breakpoints": true
     }
   ]

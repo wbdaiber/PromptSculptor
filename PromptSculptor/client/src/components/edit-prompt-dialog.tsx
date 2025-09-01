@@ -51,6 +51,7 @@ export default function EditPromptDialog({
         description: "Your prompt has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/prompts/recent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/prompts/favorites"] });
       onOpenChange(false);
     },
     onError: (error: Error) => {
