@@ -2,9 +2,9 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from 'helmet';
 import cors from 'cors';
-import { registerRoutes } from "../server/routes";
-import { validateEnv } from "../server/config/env";
-import { generalLimiter } from "../server/middleware/rateLimiter";
+import { registerRoutes } from "../server/routes.js";
+import { validateEnv } from "../server/config/env.js";
+import { generalLimiter } from "../server/middleware/rateLimiter.js";
 
 const app = express();
 
