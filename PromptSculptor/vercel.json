@@ -1,8 +1,8 @@
 {
   "buildCommand": "npm run vercel-build",
-  "outputDirectory": "dist",
+  "outputDirectory": "dist/public",
   "functions": {
-    "api/index.ts": {
+    "../api/index.ts": {
       "maxDuration": 30
     }
   },
@@ -12,24 +12,16 @@
       "destination": "/api"
     },
     {
-      "source": "/favicon.ico",
-      "destination": "/public/favicon.ico"
-    },
-    {
-      "source": "/app/(.*)",
-      "destination": "/public/index.html"
+      "source": "/",
+      "destination": "/landing.html"
     },
     {
       "source": "/app",
-      "destination": "/public/index.html"
+      "destination": "/index.html"
     },
     {
-      "source": "/",
-      "destination": "/public/landing.html"
-    },
-    {
-      "source": "/((?!assets/).*)",
-      "destination": "/public/index.html"
+      "source": "/app/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
