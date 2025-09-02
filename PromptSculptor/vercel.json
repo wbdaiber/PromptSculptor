@@ -12,7 +12,15 @@
       "destination": "/api"
     },
     {
-      "source": "/((?!assets|favicon.ico|landing.html).*)",
+      "source": "/",
+      "destination": "/landing.html"
+    },
+    {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app/(.*)",
       "destination": "/index.html"
     }
   ]
