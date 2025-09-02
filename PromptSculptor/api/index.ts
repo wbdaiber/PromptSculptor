@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from 'helmet';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
 import { registerRoutes } from "../server/routes.js";
 import { validateEnv } from "../server/config/env.js";
 import { generalLimiter } from "../server/middleware/rateLimiter.js";
@@ -80,6 +82,33 @@ async function initializeApp() {
       error: status >= 500 ? 'Internal server error' : (err.message || 'An error occurred'),
       errorId: process.env.NODE_ENV === 'development' ? errorId : undefined
     });
+  });
+  
+  // Serve static files in production - adjusted for Vercel
+  const distPath = path.resolve(process.cwd(), "dist", "public");
+  
+  // Serve static assets directly
+  app.use('/assets', express.static(path.join(distPath, 'assets')));
+  
+  // Serve landing page at root
+  app.get("/", (_req, res) => {
+    const landingPath = path.join(distPath, "landing.html");
+    if (fs.existsSync(landingPath)) {
+      res.sendFile(landingPath);
+    } else {
+      // Fallback to React app if landing doesn't exist
+      res.sendFile(path.join(distPath, "index.html"));
+    }
+  });
+  
+  // Serve React app for all other routes
+  app.use("*", (_req, res) => {
+    const indexPath = path.join(distPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).json({ error: "Static files not found. Please check the build output." });
+    }
   });
   
   initialized = true;
