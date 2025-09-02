@@ -2,6 +2,8 @@
 
 A modern web application for creating, managing, and optimizing AI prompts with support for multiple AI providers including OpenAI, Anthropic Claude, and Google Gemini.
 
+🌐 **Live at**: [https://markdownpromptcreator.com](https://markdownpromptcreator.com)
+
 ## Features
 
 - **Multi-Model Support**: Generate prompts using OpenAI GPT, Anthropic Claude, or Google Gemini
