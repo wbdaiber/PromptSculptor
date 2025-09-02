@@ -12,6 +12,9 @@ import { UserCleanupService } from "./services/userCleanupService.js";
 
 const app = express();
 
+// Trust proxy for deployment behind reverse proxies (Vercel, Nginx, etc.)
+app.set('trust proxy', true);
+
 // Security middleware - MUST come before other middleware
 app.use(helmet({
   contentSecurityPolicy: {

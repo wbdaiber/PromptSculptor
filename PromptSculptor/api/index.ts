@@ -8,6 +8,9 @@ import { generalLimiter } from "../server/middleware/rateLimiter.js";
 
 const app = express();
 
+// Trust proxy for Vercel deployment (required for rate limiting and client IP detection)
+app.set('trust proxy', true);
+
 // Security middleware - MUST come before other middleware
 app.use(helmet({
   contentSecurityPolicy: {
