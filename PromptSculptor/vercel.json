@@ -7,8 +7,8 @@
       "destination": "/api"
     },
     {
-      "source": "/",
-      "destination": "/landing.html"
+      "source": "/(favicon.ico|landing.html|index.html)",
+      "destination": "/$1"
     },
     {
       "source": "/app",
@@ -16,6 +16,14 @@
     },
     {
       "source": "/app/(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/",
+      "destination": "/landing.html"
+    },
+    {
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
