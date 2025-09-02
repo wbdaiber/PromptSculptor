@@ -10,14 +10,19 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   ENCRYPTION_KEY: z.string().min(64, 'ENCRYPTION_KEY must be 64 hex characters (32 bytes)').regex(/^[0-9a-fA-F]{64}$/, 'ENCRYPTION_KEY must be valid hex string'),
   
-  // API Keys - validate format but don't log values
+  // API Keys (Optional - Users provide their own keys)
   OPENAI_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   CLAUDE_API_KEY: z.string().min(1).optional(), // Legacy support
   GEMINI_API_KEY: z.string().min(1).optional(),
   
-  // Security keys for API authentication
+  // Security keys (deprecated - using Google OAuth for admin auth)
   ADMIN_API_KEY: z.string().min(32).optional(),
+  
+  // Google OAuth Configuration
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  ADMIN_ALLOWED_EMAILS: z.string().optional(),
   
   // Rate limiting configuration
   RATE_LIMIT_WINDOW_MS: z.string().regex(/^\d+$/).default('900000'), // 15 minutes in milliseconds
@@ -44,15 +49,9 @@ export function validateEnv(): EnvConfig {
     
     // Additional validation for production environments
     if (env.NODE_ENV === 'production') {
-      if (!env.ADMIN_API_KEY) {
-        console.error('❌ ADMIN_API_KEY is required in production');
-        process.exit(1);
-      }
-      
-      if (!env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY) {
-        console.error('❌ At least one AI service API key is required in production');
-        process.exit(1);
-      }
+      // Note: ADMIN_API_KEY is deprecated in favor of Google OAuth
+      // AI API keys are not required - users provide their own keys
+      // Templates work without any AI service keys
       
       // Validate security configuration strength in production
       if (env.SESSION_SECRET.length < 64) {
