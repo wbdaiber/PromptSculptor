@@ -23,6 +23,9 @@ import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
 function Router() {
   return (
     <Switch>
+      {/* Root Route - redirect to /app */}
+      <Route path="/" component={Home} />
+      
       {/* Main App Routes */}
       <Route path="/app" component={Home} />
       <Route path="/app/favorites" component={Favorites} />

@@ -9,10 +9,10 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index"
+      "destination": "/api"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!assets|favicon.ico|landing.html).*)",
       "destination": "/index.html"
     }
   ]
