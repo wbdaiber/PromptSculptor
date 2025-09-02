@@ -33,3 +33,8 @@ coverage/
 *.tmp
 *.swp
 .DS_Store
+
+# Exclude unwanted directories from parent
+../.claude/
+../.vscode/
+../learning-markdown/
