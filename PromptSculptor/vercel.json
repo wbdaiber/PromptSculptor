@@ -1,30 +1,30 @@
 {
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api"
+      "src": "/api/(.*)",
+      "dest": "/api"
     },
     {
-      "source": "/(favicon.ico|landing.html|index.html)",
-      "destination": "/$1"
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
     },
     {
-      "source": "/app",
-      "destination": "/index.html"
+      "src": "/app/(.*)",
+      "dest": "/index.html"
     },
     {
-      "source": "/app/(.*)",
-      "destination": "/index.html"
+      "src": "/app",
+      "dest": "/index.html"
     },
     {
-      "source": "/",
-      "destination": "/landing.html"
+      "src": "/",
+      "dest": "/landing.html"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
