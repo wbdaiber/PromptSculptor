@@ -12,8 +12,8 @@
       "destination": "/api"
     },
     {
-      "source": "/assets/(.*)",
-      "destination": "/public/assets/$1"
+      "source": "/favicon.ico",
+      "destination": "/public/favicon.ico"
     },
     {
       "source": "/app/(.*)",
@@ -28,8 +28,8 @@
       "destination": "/public/landing.html"
     },
     {
-      "source": "/favicon.ico",
-      "destination": "/public/favicon.ico"
+      "source": "/((?!assets/).*)",
+      "destination": "/public/index.html"
     }
   ]
 }
