@@ -1,5 +1,5 @@
 // No longer needed as we use direct database connection
-import { users } from '@shared/schema';
+import { users } from '../../shared/schema.js';
 import { and, lt, eq, isNotNull, sql } from 'drizzle-orm';
 
 export class UserCleanupService {

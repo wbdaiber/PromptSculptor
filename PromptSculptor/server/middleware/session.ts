@@ -4,7 +4,7 @@ import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { DatabaseStorage } from '../databaseStorage.js';
 import type { Express, Request, Response, NextFunction } from 'express';
-import type { User } from '@shared/schema';
+import type { User } from '../../shared/schema.js';
 
 // Request queuing for authentication operations to prevent race conditions
 const authRequestQueue = new Map<string, Promise<void>>();

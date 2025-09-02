@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { sql, count, countDistinct, desc } from 'drizzle-orm';
 import { Pool } from 'pg';
-import { prompts, users, userApiKeys, passwordResetTokens } from '@shared/schema';
+import { prompts, users, userApiKeys, passwordResetTokens } from '../../shared/schema.js';
 import { cacheService, CacheKeys, CacheTTL } from './cacheService.js';
 import { performanceMonitor } from './performanceMonitoringService.js';
 

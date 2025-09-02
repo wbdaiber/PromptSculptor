@@ -5,7 +5,7 @@ import {
   type Template, 
   type InsertTemplate,
   templates
-} from '@shared/schema';
+} from '../../shared/schema.js';
 import { TemplateService } from './templateService.js';
 
 export class TemplateManagementService {

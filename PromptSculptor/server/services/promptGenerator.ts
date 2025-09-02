@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI, type GenerateContentParameters, type GenerateContentResponse } from "@google/genai";
-import { type GeneratePromptRequest } from "@shared/schema";
+import { type GeneratePromptRequest } from "../../shared/schema.js";
 import { APIKeyManager } from "./apiKeyManager.js";
 import { UserApiKeyManager } from "./userApiKeyManager.js";
 import { EnhancedDemoMode, type EnhancedGeneratedPromptResult } from "./enhancedDemoMode.js";

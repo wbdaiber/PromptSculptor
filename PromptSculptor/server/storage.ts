@@ -1,4 +1,4 @@
-import { type Prompt, type InsertPrompt, type Template, type InsertTemplate } from "@shared/schema";
+import { type Prompt, type InsertPrompt, type Template, type InsertTemplate } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { DatabaseStorage } from "./databaseStorage.js";
 import { TemplateService } from "./services/templateService.js";

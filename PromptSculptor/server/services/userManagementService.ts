@@ -10,7 +10,7 @@ import {
   type InsertUserApiKey,
   users,
   userApiKeys
-} from '@shared/schema';
+} from '../../shared/schema.js';
 
 // Encryption service for API keys
 class EncryptionService {

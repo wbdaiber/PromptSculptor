@@ -1,4 +1,4 @@
-import { users, prompts, userApiKeys } from '@shared/schema';
+import { users, prompts, userApiKeys } from '../../shared/schema.js';
 import { sql, desc, gte, lt, and, count, isNotNull, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';

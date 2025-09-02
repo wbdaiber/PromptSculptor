@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { sql, eq, lt } from 'drizzle-orm';
 import { Pool } from 'pg';
-import { userSessions } from '@shared/schema';
+import { userSessions } from '../../shared/schema.js';
 
 export interface SessionData {
   userId?: string;

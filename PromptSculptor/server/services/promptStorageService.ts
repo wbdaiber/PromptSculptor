@@ -5,7 +5,7 @@ import {
   type Prompt, 
   type InsertPrompt,
   prompts
-} from '@shared/schema';
+} from '../../shared/schema.js';
 
 export class PromptStorageService {
   private db: ReturnType<typeof drizzle>;

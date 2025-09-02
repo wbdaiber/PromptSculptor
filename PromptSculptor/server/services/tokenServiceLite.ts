@@ -5,7 +5,7 @@ import {
   type PasswordResetToken,
   type InsertPasswordResetToken,
   passwordResetTokens
-} from '@shared/schema';
+} from '../../shared/schema.js';
 
 /**
  * Lightweight token service for password reset operations

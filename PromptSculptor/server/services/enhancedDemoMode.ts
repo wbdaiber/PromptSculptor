@@ -1,4 +1,4 @@
-import { type GeneratePromptRequest } from "@shared/schema";
+import { type GeneratePromptRequest } from "../../shared/schema.js";
 
 /**
  * Enhanced Demo Mode Service

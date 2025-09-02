@@ -8,7 +8,7 @@ import {
   type InsertUserApiKey,
   type PasswordResetToken,
   type InsertPasswordResetToken,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { IStorage } from './storage.js';
 
 // Import the new services
