@@ -1,20 +1,20 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { createStorage } from "./storage";
-import { generateStructuredPrompt, type UserContext } from "./services/promptGenerator";
-import { DatabaseStorage } from "./databaseStorage";
+import { createStorage } from "./storage.js";
+import { generateStructuredPrompt, type UserContext } from "./services/promptGenerator.js";
+import { DatabaseStorage } from "./databaseStorage.js";
 import { generatePromptRequestSchema, insertPromptSchema, insertTemplateSchema } from "../shared/schema.js";
 import { z } from "zod";
-import { requireApiKey, getAuthStatus } from "./middleware/basicAuth";
-import { aiLimiter, modificationLimiter } from "./middleware/rateLimiter";
-import { sanitizePromptRequest, sanitizeTitle, sanitizeOutput } from "./utils/sanitizer";
-import { setupSession, extractUserId } from "./middleware/session";
-import { validateUserContext, validateAuthenticatedContext } from "./middleware/contextValidation";
-import authRoutes from "./routes/auth";
-import monitoringRoutes from "./routes/monitoring";
-import adminAuthRoutes from "./routes/adminAuth";
-import { cacheInvalidationService } from "./services/cacheInvalidationService";
-import { DemoModeService } from "./services/demoModeService";
+import { requireApiKey, getAuthStatus } from "./middleware/basicAuth.js";
+import { aiLimiter, modificationLimiter } from "./middleware/rateLimiter.js";
+import { sanitizePromptRequest, sanitizeTitle, sanitizeOutput } from "./utils/sanitizer.js";
+import { setupSession, extractUserId } from "./middleware/session.js";
+import { validateUserContext, validateAuthenticatedContext } from "./middleware/contextValidation.js";
+import authRoutes from "./routes/auth.js";
+import monitoringRoutes from "./routes/monitoring.js";
+import adminAuthRoutes from "./routes/adminAuth.js";
+import { cacheInvalidationService } from "./services/cacheInvalidationService.js";
+import { DemoModeService } from "./services/demoModeService.js";
 
 // Helper function for template creation
 async function handleTemplateCreation(req: any, res: any) {

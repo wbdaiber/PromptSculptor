@@ -1,7 +1,7 @@
 import { type Prompt, type InsertPrompt, type Template, type InsertTemplate } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { DatabaseStorage } from "./databaseStorage";
-import { TemplateService } from "./services/templateService";
+import { DatabaseStorage } from "./databaseStorage.js";
+import { TemplateService } from "./services/templateService.js";
 
 export interface IStorage {
   getPrompt(id: string): Promise<Prompt | undefined>;
