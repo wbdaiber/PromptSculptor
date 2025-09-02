@@ -12,16 +12,28 @@
       "destination": "/api"
     },
     {
-      "source": "/",
-      "destination": "/landing.html"
+      "source": "/app/(.*)",
+      "destination": "/index.html"
     },
     {
       "source": "/app",
       "destination": "/index.html"
     },
     {
-      "source": "/app/(.*)",
-      "destination": "/index.html"
+      "source": "/(favicon.ico|robots.txt|sitemap.xml)",
+      "destination": "/$1"
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
+    },
+    {
+      "source": "/",
+      "destination": "/landing.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
     }
   ]
 }
