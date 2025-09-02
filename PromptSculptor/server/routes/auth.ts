@@ -1,14 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-import { DatabaseStorage } from '../databaseStorage';
+import { DatabaseStorage } from '../databaseStorage.js';
 import { z } from 'zod';
-import { sanitizeInput } from '../utils/sanitizer';
-import { UserApiKeyManager } from '../services/userApiKeyManager';
-import { passwordResetLimiter } from '../middleware/rateLimiter';
-import { generateResetToken, hashToken } from '../services/tokenService';
-import { sendPasswordResetEmail, sendWelcomeEmail } from '../services/emailService';
-import { forgotPasswordSchema, resetPasswordSchema } from '../../shared/schema';
-import { cacheInvalidationService } from '../services/cacheInvalidationService';
+import { sanitizeInput } from '../utils/sanitizer.js';
+import { UserApiKeyManager } from '../services/userApiKeyManager.js';
+import { passwordResetLimiter } from '../middleware/rateLimiter.js';
+import { generateResetToken, hashToken } from '../services/tokenService.js';
+import { sendPasswordResetEmail, sendWelcomeEmail } from '../services/emailService.js';
+import { forgotPasswordSchema, resetPasswordSchema } from '../../shared/schema.js';
+import { cacheInvalidationService } from '../services/cacheInvalidationService.js';
 
 const router = Router();
 

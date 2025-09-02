@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
-import { config } from "../config/env";
+import { config } from "../config/env.js";
 
 /**
  * Secure API Key Manager

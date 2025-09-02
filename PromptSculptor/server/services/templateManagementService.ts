@@ -6,7 +6,7 @@ import {
   type InsertTemplate,
   templates
 } from '@shared/schema';
-import { TemplateService } from './templateService';
+import { TemplateService } from './templateService.js';
 
 export class TemplateManagementService {
   private db: ReturnType<typeof drizzle>;

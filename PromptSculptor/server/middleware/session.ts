@@ -2,7 +2,7 @@ import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import { DatabaseStorage } from '../databaseStorage';
+import { DatabaseStorage } from '../databaseStorage.js';
 import type { Express, Request, Response, NextFunction } from 'express';
 import type { User } from '@shared/schema';
 

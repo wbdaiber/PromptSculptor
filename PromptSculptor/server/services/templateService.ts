@@ -1,4 +1,4 @@
-import { InsertTemplate } from '../../shared/schema';
+import { InsertTemplate } from '../../shared/schema.js';
 
 /**
  * Centralized template service to prevent duplication across storage implementations

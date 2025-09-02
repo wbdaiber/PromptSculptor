@@ -9,13 +9,13 @@ import {
   type PasswordResetToken,
   type InsertPasswordResetToken,
 } from "@shared/schema";
-import { IStorage } from './storage';
+import { IStorage } from './storage.js';
 
 // Import the new services
-import { userManagementService, UserManagementService } from './services/userManagementService';
-import { promptStorageService, PromptStorageService } from './services/promptStorageService';
-import { templateManagementService, TemplateManagementService } from './services/templateManagementService';
-import { tokenServiceLite, TokenServiceLite } from './services/tokenServiceLite';
+import { userManagementService, UserManagementService } from './services/userManagementService.js';
+import { promptStorageService, PromptStorageService } from './services/promptStorageService.js';
+import { templateManagementService, TemplateManagementService } from './services/templateManagementService.js';
+import { tokenServiceLite, TokenServiceLite } from './services/tokenServiceLite.js';
 
 // Extended storage interface for user operations
 export interface IDatabaseStorage extends IStorage {

@@ -2,8 +2,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { EventEmitter } from 'events';
-import { performanceMonitor } from './performanceMonitoringService';
-import { cacheInvalidationService } from './cacheInvalidationService';
+import { performanceMonitor } from './performanceMonitoringService.js';
+import { cacheInvalidationService } from './cacheInvalidationService.js';
 
 interface MaintenanceTask {
   name: string;

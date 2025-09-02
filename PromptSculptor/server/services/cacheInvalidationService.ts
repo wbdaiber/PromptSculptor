@@ -1,4 +1,4 @@
-import { cacheService } from './cacheService';
+import { cacheService } from './cacheService.js';
 import { EventEmitter } from 'events';
 
 /**

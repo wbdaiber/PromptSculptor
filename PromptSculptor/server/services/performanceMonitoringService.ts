@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { cacheService } from './cacheService';
+import { cacheService } from './cacheService.js';
 
 interface QueryMetrics {
   query: string;

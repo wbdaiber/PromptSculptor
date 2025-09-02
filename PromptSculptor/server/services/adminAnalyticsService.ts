@@ -2,8 +2,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { sql, count, countDistinct, desc } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { prompts, users, userApiKeys, passwordResetTokens } from '@shared/schema';
-import { cacheService, CacheKeys, CacheTTL } from './cacheService';
-import { performanceMonitor } from './performanceMonitoringService';
+import { cacheService, CacheKeys, CacheTTL } from './cacheService.js';
+import { performanceMonitor } from './performanceMonitoringService.js';
 
 export interface AdminAnalytics {
   totalUsers: number;

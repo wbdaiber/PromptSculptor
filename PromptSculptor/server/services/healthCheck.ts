@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { sql } from 'drizzle-orm';
-import { checkEmailHealth } from './emailService';
+import { checkEmailHealth } from './emailService.js';
 
 /**
  * Database health check - tests actual database connectivity

@@ -2,12 +2,12 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from 'helmet';
 import cors from 'cors';
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { validateEnv } from "./config/env";
-import { generalLimiter } from "./middleware/rateLimiter";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
+import { validateEnv } from "./config/env.js";
+import { generalLimiter } from "./middleware/rateLimiter.js";
 import { scheduleTokenCleanup } from "./services/tokenCleanupService.js";
-import { UserCleanupService } from "./services/userCleanupService";
+import { UserCleanupService } from "./services/userCleanupService.js";
 
 
 const app = express();

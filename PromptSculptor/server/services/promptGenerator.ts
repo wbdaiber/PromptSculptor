@@ -2,11 +2,11 @@ import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI, type GenerateContentParameters, type GenerateContentResponse } from "@google/genai";
 import { type GeneratePromptRequest } from "@shared/schema";
-import { APIKeyManager } from "./apiKeyManager";
-import { UserApiKeyManager } from "./userApiKeyManager";
-import { EnhancedDemoMode, type EnhancedGeneratedPromptResult } from "./enhancedDemoMode";
-import { DemoModeService, type DemoModeContext } from "./demoModeService";
-import type { DatabaseStorage } from "../databaseStorage";
+import { APIKeyManager } from "./apiKeyManager.js";
+import { UserApiKeyManager } from "./userApiKeyManager.js";
+import { EnhancedDemoMode, type EnhancedGeneratedPromptResult } from "./enhancedDemoMode.js";
+import { DemoModeService, type DemoModeContext } from "./demoModeService.js";
+import type { DatabaseStorage } from "../databaseStorage.js";
 
 /*
 <important_code_snippet_instructions>

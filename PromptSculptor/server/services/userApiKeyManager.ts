@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
-import { DatabaseStorage } from "../databaseStorage";
+import { DatabaseStorage } from "../databaseStorage.js";
 
 /**
  * User-Aware API Key Manager

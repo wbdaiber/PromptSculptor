@@ -1,4 +1,4 @@
-import type { DatabaseStorage } from "../databaseStorage";
+import type { DatabaseStorage } from "../databaseStorage.js";
 
 /**
  * Context object for demo mode detection
@@ -123,7 +123,7 @@ export class DemoModeService {
     try {
       if (isAuthenticated && req.userId) {
         // Import here to avoid circular dependencies
-        const { DatabaseStorage } = await import('../databaseStorage');
+        const { DatabaseStorage } = await import('../databaseStorage.js');
         
         const dbStorage = new DatabaseStorage(req.userId);
         const userApiKeys = await dbStorage.getUserApiKeys(req.userId);

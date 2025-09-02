@@ -165,7 +165,7 @@ class MonitoringService {
     }>;
   }> {
     // Import health check function dynamically to avoid circular dependencies
-    const { performSystemHealthCheck } = await import('./healthCheck');
+    const { performSystemHealthCheck } = await import('./healthCheck.js');
     return await performSystemHealthCheck();
   }
 

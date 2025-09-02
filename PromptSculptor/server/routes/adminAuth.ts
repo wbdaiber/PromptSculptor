@@ -1,6 +1,6 @@
 import express from 'express';
 import passport from 'passport';
-import { setupAdminOAuth, getAdminOAuthConfig, requireAdminAuth } from '../config/oauth';
+import { setupAdminOAuth, getAdminOAuthConfig, requireAdminAuth } from '../config/oauth.js';
 
 const router = express.Router();
 
