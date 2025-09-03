@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq, desc, and, or, sql, isNull } from 'drizzle-orm';
+import { eq, desc, and, or, sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { 
   type Template, 
@@ -31,51 +31,21 @@ export class TemplateManagementService {
    */
   async initializeDefaultTemplates(): Promise<void> {
     try {
-      // First check if default templates already exist
-      const existingDefaults = await this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(templates)
-        .where(and(
-          eq(templates.isDefault, true),
-          isNull(templates.userId)
-        ));
-      
-      if (existingDefaults[0]?.count >= 4) {
-        console.log('Default templates already initialized');
-        return;
-      }
-      
       const defaultTemplates = await this.templateService.getDefaultTemplates();
       
-      // Use a transaction with proper error handling
       await this.db.transaction(async (tx) => {
         for (const template of defaultTemplates) {
-          try {
-            await tx
-              .insert(templates)
-              .values({
-                ...template,
-                isDefault: true,
-                userId: null
-              })
-              .onConflictDoNothing();
-          } catch (err: any) {
-            // Log but don't fail the entire transaction
-            console.warn(`Template initialization warning for ${template.name}:`, err.message);
-          }
+          await tx
+            .insert(templates)
+            .values({
+              ...template,
+              isDefault: true,
+              userId: null
+            })
+            .onConflictDoNothing();
         }
       });
-      
-      // Verify initialization
-      const afterCount = await this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(templates)
-        .where(and(
-          eq(templates.isDefault, true),
-          isNull(templates.userId)
-        ));
-      
-      console.log(`Default templates initialization completed. Count: ${afterCount[0]?.count}`);
+      console.log('Default templates initialization completed');
     } catch (error) {
       console.error('Error initializing default templates:', error);
       // Don't throw - allow app to continue even if templates fail to initialize
@@ -161,24 +131,8 @@ export class TemplateManagementService {
       const result = await this.db
         .select()
         .from(templates)
-        .where(and(
-          eq(templates.isDefault, true),
-          isNull(templates.userId)  // Extra defensive check
-        ))
+        .where(eq(templates.isDefault, true))
         .orderBy(templates.type);
-      
-      // Log warning if we detect orphaned templates
-      const orphanedCheck = await this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(templates)
-        .where(and(
-          isNull(templates.userId),
-          eq(templates.isDefault, false)
-        ));
-      
-      if (orphanedCheck[0]?.count > 0) {
-        console.warn(`⚠️ Found ${orphanedCheck[0].count} orphaned templates (user_id=NULL, is_default=FALSE). These should be cleaned up.`);
-      }
       
       return result;
     } catch (error) {
