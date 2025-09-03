@@ -88,8 +88,16 @@ export async function logout() {
 }
 
 export async function getCurrentUser() {
-  const response = await apiRequest("GET", "/api/auth/me");
-  return response.json();
+  try {
+    const response = await apiRequest("GET", "/api/auth/me");
+    return response.json();
+  } catch (error: any) {
+    // 401 is expected for guest users - return null instead of throwing
+    if (error.message?.includes('401') || error.message?.includes('Authentication failed')) {
+      return { user: null };
+    }
+    throw error;
+  }
 }
 
 // API Key management functions

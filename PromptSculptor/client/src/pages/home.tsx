@@ -177,10 +177,8 @@ export default function Home() {
                 Start Here
               </Button>
               
-              {/* Authentication UI */}
-              {loading ? (
-                <div className="w-20 h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-              ) : user ? (
+              {/* Authentication UI - Render sign-in immediately, don't wait for auth check */}
+              {user ? (
                 <div className="flex items-center space-x-3">
                   <span className="text-sm text-slate-600 dark:text-slate-400 hidden sm:inline">
                     {user.email}
@@ -192,6 +190,7 @@ export default function Home() {
                   onClick={() => setShowAuthModal(true)}
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={loading}
                 >
                   <LogIn className="h-4 w-4 mr-2" />
                   Sign In

@@ -46,9 +46,9 @@ In Vercel Dashboard → Project → Settings → Environment Variables, add:
 **Required Variables:**
 ```bash
 NODE_ENV=production
-DATABASE_URL=postgresql://neondb_owner:npg_OTjdgwq0x1BV@ep-gentle-flower-adjvsoq8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-SESSION_SECRET=efcce6324c07c9a103f62d80a125e6f02ba4072bd111e2a825842a7cf7e49ef9
-ENCRYPTION_KEY=bf9a39c9d4973e071579c902624a96ed935737df3770dc81292b4e0a929ae2c7
+DATABASE_URL=database-url
+SESSION_SECRET=session-secret
+ENCRYPTION_KEY=encryption-key
 ```
 
 **Google OAuth (for Admin):**

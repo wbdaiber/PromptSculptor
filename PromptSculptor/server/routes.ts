@@ -15,6 +15,7 @@ import monitoringRoutes from "./routes/monitoring.js";
 import adminAuthRoutes from "./routes/adminAuth.js";
 import { cacheInvalidationService } from "./services/cacheInvalidationService.js";
 import { DemoModeService } from "./services/demoModeService.js";
+import { templateManagementService } from "./services/templateManagementService.js";
 
 // Helper function for template creation
 async function handleTemplateCreation(req: any, res: any) {
@@ -72,8 +73,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Get all templates - filtered by user context
-  app.get("/api/templates", extractUserId, validateUserContext, async (req, res) => {
+  // Get default templates - PUBLIC endpoint for guest users
+  app.get("/api/templates/default", async (_req, res) => {
+    try {
+      const defaultTemplates = await templateManagementService.getDefaultTemplates();
+      res.json(defaultTemplates);
+    } catch (error) {
+      console.error('Error fetching default templates:', error);
+      res.status(500).json({ message: "Failed to fetch default templates" });
+    }
+  });
+  
+  // Get all templates - combines default + user templates (auth optional)
+  app.get("/api/templates", extractUserId, async (req, res) => {
     try {
       // Set no-cache headers to prevent browser caching of user data
       res.set({
@@ -83,10 +95,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Surrogate-Control': 'no-store'
       });
       
-      const userStorage = createStorage(req.userId); // Pass user context for proper filtering
-      const templates = await userStorage.getTemplates();
-      res.json(templates);
+      // Always return default templates, add user templates if authenticated
+      const defaultTemplates = await templateManagementService.getDefaultTemplates();
+      
+      if (req.userId) {
+        // Authenticated user - return defaults + user templates
+        const userTemplates = await templateManagementService.getUserTemplates(req.userId);
+        res.json([...defaultTemplates, ...userTemplates]);
+      } else {
+        // Guest user - return only defaults
+        res.json(defaultTemplates);
+      }
     } catch (error) {
+      console.error('Error fetching templates:', error);
       res.status(500).json({ message: "Failed to fetch templates" });
     }
   });

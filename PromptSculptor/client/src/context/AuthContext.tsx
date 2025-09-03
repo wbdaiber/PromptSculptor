@@ -64,9 +64,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthOperationInProgress(true);
       try {
         const data = await getCurrentUser();
-        setUser(data.user);
         
         if (data.user) {
+          setUser(data.user);
           try {
             const apiKeyData = await getUserApiKeys();
             setApiKeys(apiKeyData.keys || apiKeyData);
@@ -75,10 +75,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setApiKeys([]);
           }
         } else {
+          // Guest user - this is normal, not an error
+          setUser(null);
           setApiKeys([]);
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        // Only log unexpected errors
+        console.error('Unexpected auth error:', error);
         setUser(null);
         setApiKeys([]);
       } finally {

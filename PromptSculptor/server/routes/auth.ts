@@ -33,6 +33,21 @@ const deleteAccountSchema = z.object({
   password: z.string().min(1),
 });
 
+// Lightweight session check endpoint (for guests and users)
+router.get('/me', (req: Request, res: Response) => {
+  if (req.user) {
+    // User is authenticated
+    res.json({
+      id: req.user.id,
+      email: req.user.email,
+      username: req.user.username,
+    });
+  } else {
+    // Guest user - return 401 but don't throw
+    res.status(401).json({ message: 'Not authenticated' });
+  }
+});
+
 // Register new user
 router.post('/register', async (req: Request, res: Response) => {
   try {

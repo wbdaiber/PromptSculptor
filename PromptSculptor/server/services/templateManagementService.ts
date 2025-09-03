@@ -37,13 +37,18 @@ export class TemplateManagementService {
         for (const template of defaultTemplates) {
           await tx
             .insert(templates)
-            .values(template)
+            .values({
+              ...template,
+              isDefault: true,
+              userId: null
+            })
             .onConflictDoNothing();
         }
       });
+      console.log('Default templates initialization completed');
     } catch (error) {
       console.error('Error initializing default templates:', error);
-      throw new Error('Failed to initialize default templates');
+      // Don't throw - allow app to continue even if templates fail to initialize
     }
   }
 
@@ -114,6 +119,24 @@ export class TemplateManagementService {
       return result;
     } catch (error) {
       console.error(`Error fetching user templates for ${userId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get only default system templates (public)
+   */
+  async getDefaultTemplates(): Promise<Template[]> {
+    try {
+      const result = await this.db
+        .select()
+        .from(templates)
+        .where(eq(templates.isDefault, true))
+        .orderBy(templates.type);
+      
+      return result;
+    } catch (error) {
+      console.error('Error fetching default templates:', error);
       return [];
     }
   }
