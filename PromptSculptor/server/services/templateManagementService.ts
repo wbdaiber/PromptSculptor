@@ -164,7 +164,18 @@ export class TemplateManagementService {
       return result;
     } catch (error) {
       console.error('Error fetching default templates:', error);
-      return [];
+      // Fallback: Return in-memory default templates if database query fails
+      // This handles the case where slug column doesn't exist yet
+      const templateService = TemplateService.getInstance();
+      const defaultTemplates = templateService.getDefaultTemplates();
+      return defaultTemplates.map((t, index) => ({
+        ...t,
+        id: `default-${t.type}`,
+        slug: t.slug || null,
+        userId: null,
+        isDefault: true,
+        createdAt: new Date()
+      })) as Template[];
     }
   }
 
@@ -189,7 +200,18 @@ export class TemplateManagementService {
       return result;
     } catch (error) {
       console.error('Error fetching accessible templates:', error);
-      return [];
+      // Fallback: Return in-memory default templates if database query fails
+      // This handles the case where slug column doesn't exist yet
+      const templateService = TemplateService.getInstance();
+      const defaultTemplates = templateService.getDefaultTemplates();
+      return defaultTemplates.map((t, index) => ({
+        ...t,
+        id: `default-${t.type}`,
+        slug: t.slug || null,
+        userId: null,
+        isDefault: true,
+        createdAt: new Date()
+      })) as Template[];
     }
   }
 
