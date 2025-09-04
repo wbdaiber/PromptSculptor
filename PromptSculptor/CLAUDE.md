@@ -230,14 +230,13 @@ node server/test-race-conditions.js                   # Comprehensive race condi
 - Maintains full maintenance functionality via admin endpoints
 - Zero impact on local development or traditional deployments
 
-**Scheduled Maintenance on Vercel (Implemented)**:
-- **Vercel Cron Jobs**: Configured in `vercel.json` with multiple schedules
-  - Hourly: Session and token cleanup
-  - Daily 2 AM UTC: Data retention policies
-  - Daily 3 AM UTC: Analytics aggregation  
-  - Weekly Sunday 4 AM UTC: VACUUM ANALYZE
+**Scheduled Maintenance on Vercel (Hobby Plan Compatible)**:
+- **Vercel Cron Job**: Single daily cron at 2 AM UTC (Hobby plan limit: 1 execution/day)
+  - Daily: Session cleanup, token cleanup, data retention, analytics aggregation
+  - Weekly (Sundays): VACUUM ANALYZE database optimization
 - **Cron Endpoint**: `/api/monitoring/maintenance/cron` with CRON_SECRET authentication
 - **Environment Variable**: Add `CRON_SECRET` to Vercel for production security
+- **Note**: Hobby plan allows 2 cron jobs but only 1 execution per day each
 
 ### Recent Architecture Refactoring (User-Centric System Complete)
 

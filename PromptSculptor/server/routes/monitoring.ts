@@ -511,12 +511,12 @@ router.get('/maintenance/cron', async (req, res) => {
       }
     }
     
-    console.log('🔧 Starting scheduled maintenance tasks (Vercel Cron)');
+    console.log('🔧 Starting scheduled maintenance tasks (Vercel Cron - Daily)');
     
-    // Run different maintenance tasks based on schedule
+    // Run all maintenance tasks in a single daily execution (Hobby plan limitation: 1 cron per day)
     const reports: any[] = [];
     
-    // Run essential cleanup tasks (these should run frequently)
+    // Always run essential cleanup tasks
     try {
       const sessionReport = await databaseMaintenanceService.cleanupExpiredSessions();
       reports.push({ ...sessionReport, taskName: 'sessionCleanup' });
@@ -533,32 +533,27 @@ router.get('/maintenance/cron', async (req, res) => {
       reports.push({ task: 'tokenCleanup', success: false, error: String(error) });
     }
     
-    // Run data retention cleanup (daily)
-    const currentHour = new Date().getUTCHours();
-    if (currentHour === 2) { // Run at 2 AM UTC
-      try {
-        const retentionReport = await databaseMaintenanceService.applyDataRetentionPolicies();
-        reports.push({ ...retentionReport, taskName: 'dataRetention' });
-      } catch (error) {
-        console.error('Data retention cleanup failed:', error);
-        reports.push({ task: 'dataRetention', success: false, error: String(error) });
-      }
+    // Always run data retention cleanup
+    try {
+      const retentionReport = await databaseMaintenanceService.applyDataRetentionPolicies();
+      reports.push({ ...retentionReport, taskName: 'dataRetention' });
+    } catch (error) {
+      console.error('Data retention cleanup failed:', error);
+      reports.push({ task: 'dataRetention', success: false, error: String(error) });
     }
     
-    // Run analytics aggregation (daily at 3 AM UTC)
-    if (currentHour === 3) {
-      try {
-        const analyticsReport = await databaseMaintenanceService.aggregateAnalyticsData();
-        reports.push({ ...analyticsReport, taskName: 'analyticsAggregation' });
-      } catch (error) {
-        console.error('Analytics aggregation failed:', error);
-        reports.push({ task: 'analyticsAggregation', success: false, error: String(error) });
-      }
+    // Always run analytics aggregation
+    try {
+      const analyticsReport = await databaseMaintenanceService.aggregateAnalyticsData();
+      reports.push({ ...analyticsReport, taskName: 'analyticsAggregation' });
+    } catch (error) {
+      console.error('Analytics aggregation failed:', error);
+      reports.push({ task: 'analyticsAggregation', success: false, error: String(error) });
     }
     
-    // Run VACUUM ANALYZE (weekly - Sundays at 4 AM UTC)
+    // Run VACUUM ANALYZE weekly (on Sundays)
     const currentDay = new Date().getUTCDay();
-    if (currentDay === 0 && currentHour === 4) {
+    if (currentDay === 0) {
       try {
         const vacuumReport = await databaseMaintenanceService.vacuumAnalyze();
         reports.push({ ...vacuumReport, taskName: 'vacuumAnalyze' });
