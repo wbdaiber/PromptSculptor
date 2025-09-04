@@ -52,8 +52,11 @@ export class DemoModeService {
       return true;
     }
 
+    // Map target model to service name
+    const serviceForModel = this.getServiceForModel(context.targetModel);
+    
     // User doesn't have the specific API key for target model - use demo mode
-    if (!context.availableServices.includes(context.targetModel)) {
+    if (!context.availableServices.includes(serviceForModel)) {
       return true;
     }
 
@@ -86,7 +89,10 @@ export class DemoModeService {
       };
     }
 
-    if (!context.availableServices.includes(context.targetModel)) {
+    // Map target model to service name
+    const serviceForModel = this.getServiceForModel(context.targetModel);
+    
+    if (!context.availableServices.includes(serviceForModel)) {
       const modelNames = {
         'gpt': 'OpenAI',
         'claude': 'Anthropic Claude', 
@@ -196,5 +202,30 @@ export class DemoModeService {
       availableServices: [],
       targetModel
     };
+  }
+
+  /**
+   * Maps target model names to service names
+   * 
+   * @param targetModel - The target model name ('gpt', 'claude', 'gemini')
+   * @returns The corresponding service name ('openai', 'anthropic', 'gemini')
+   */
+  private static getServiceForModel(targetModel: string): string {
+    switch (targetModel.toLowerCase()) {
+      case 'gpt':
+      case 'openai':
+        return 'openai';
+      
+      case 'claude':
+      case 'anthropic':
+        return 'anthropic';
+      
+      case 'gemini':
+      case 'google':
+        return 'gemini';
+      
+      default:
+        return targetModel.toLowerCase();
+    }
   }
 }
