@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -78,6 +78,7 @@ export const prompts = pgTable("prompts", {
 
 export const templates = pgTable("templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug", { length: 100 }), // Stable identifier for default templates
   name: text("name").notNull(),
   type: text("type").notNull(), // 'analysis', 'writing', 'coding', 'custom'
   description: text("description").notNull(),
@@ -89,6 +90,10 @@ export const templates = pgTable("templates", {
   isDefault: boolean("is_default").notNull().default(false), // true for system templates
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
+  // Unique constraint on slug for default templates only
+  slugUniqueIdx: uniqueIndex("uq_default_template_slug").on(table.slug).where(sql`is_default = true`),
+  // Index for faster slug queries
+  slugIdx: index("idx_template_slug").on(table.slug),
   // Index for template type and default queries (admin analytics)
   typeDefaultIdx: index("templates_type_default_idx").on(table.type, table.isDefault),
   // Index for user templates ordered by creation

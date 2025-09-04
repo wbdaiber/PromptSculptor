@@ -494,6 +494,101 @@ router.post('/maintenance/run', requireAdminAuth, async (req, res) => {
 });
 
 /**
+ * Vercel Cron Job endpoint for automated maintenance
+ * GET /api/monitoring/maintenance/cron
+ * This endpoint is called by Vercel Cron Jobs to run scheduled maintenance
+ */
+router.get('/maintenance/cron', async (req, res) => {
+  try {
+    // Verify the request is from Vercel Cron (uses Authorization header)
+    const authHeader = req.headers.authorization;
+    
+    // In production, Vercel adds CRON_SECRET to Authorization header
+    if (process.env.NODE_ENV === 'production') {
+      const cronSecret = process.env.CRON_SECRET;
+      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+    }
+    
+    console.log('🔧 Starting scheduled maintenance tasks (Vercel Cron)');
+    
+    // Run different maintenance tasks based on schedule
+    const reports: any[] = [];
+    
+    // Run essential cleanup tasks (these should run frequently)
+    try {
+      const sessionReport = await databaseMaintenanceService.cleanupExpiredSessions();
+      reports.push({ ...sessionReport, taskName: 'sessionCleanup' });
+    } catch (error) {
+      console.error('Session cleanup failed:', error);
+      reports.push({ task: 'sessionCleanup', success: false, error: String(error) });
+    }
+    
+    try {
+      const tokenReport = await databaseMaintenanceService.cleanupExpiredTokens();
+      reports.push({ ...tokenReport, taskName: 'tokenCleanup' });
+    } catch (error) {
+      console.error('Token cleanup failed:', error);
+      reports.push({ task: 'tokenCleanup', success: false, error: String(error) });
+    }
+    
+    // Run data retention cleanup (daily)
+    const currentHour = new Date().getUTCHours();
+    if (currentHour === 2) { // Run at 2 AM UTC
+      try {
+        const retentionReport = await databaseMaintenanceService.applyDataRetentionPolicies();
+        reports.push({ ...retentionReport, taskName: 'dataRetention' });
+      } catch (error) {
+        console.error('Data retention cleanup failed:', error);
+        reports.push({ task: 'dataRetention', success: false, error: String(error) });
+      }
+    }
+    
+    // Run analytics aggregation (daily at 3 AM UTC)
+    if (currentHour === 3) {
+      try {
+        const analyticsReport = await databaseMaintenanceService.aggregateAnalyticsData();
+        reports.push({ ...analyticsReport, taskName: 'analyticsAggregation' });
+      } catch (error) {
+        console.error('Analytics aggregation failed:', error);
+        reports.push({ task: 'analyticsAggregation', success: false, error: String(error) });
+      }
+    }
+    
+    // Run VACUUM ANALYZE (weekly - Sundays at 4 AM UTC)
+    const currentDay = new Date().getUTCDay();
+    if (currentDay === 0 && currentHour === 4) {
+      try {
+        const vacuumReport = await databaseMaintenanceService.vacuumAnalyze();
+        reports.push({ ...vacuumReport, taskName: 'vacuumAnalyze' });
+      } catch (error) {
+        console.error('Vacuum analyze failed:', error);
+        reports.push({ task: 'vacuumAnalyze', success: false, error: String(error) });
+      }
+    }
+    
+    const successCount = reports.filter(r => r.success !== false).length;
+    console.log(`✅ Scheduled maintenance completed: ${successCount}/${reports.length} tasks successful`);
+    
+    res.json({
+      message: 'Scheduled maintenance completed',
+      tasksRun: reports.length,
+      successful: successCount,
+      reports,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Scheduled maintenance failed:', error);
+    res.status(500).json({
+      error: 'Scheduled maintenance failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
  * Database statistics endpoint (admin only)
  * GET /api/monitoring/database/stats
  * Returns detailed database statistics

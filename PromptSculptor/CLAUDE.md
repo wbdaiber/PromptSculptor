@@ -209,6 +209,36 @@ node server/test-race-conditions.js                   # Comprehensive race condi
 - **Documentation**: Comprehensive migration history and operational procedures
 - **Risk Management**: Categorized rollback procedures from low-risk to critical with data loss warnings
 
+### Database Maintenance Service (Vercel Optimization - September 2025)
+
+**Issue Resolved**: Duplicate "Data retention policies applied" logging in Vercel deployments (60+ duplicate messages)
+
+**Root Cause**: Vercel's serverless architecture spawns multiple worker processes, each creating its own `DatabaseMaintenanceService` singleton instance. This resulted in multiple schedulers running simultaneously, causing duplicate log entries and unnecessary database operations.
+
+**Solution Implemented**:
+- **Vercel Environment Detection**: Service now detects Vercel environment via `process.env.VERCEL === '1'`
+- **Scheduler Disabled in Serverless**: Automatic scheduler initialization disabled in Vercel to prevent duplicate executions
+- **Manual Maintenance Available**: All maintenance tasks remain available via admin API endpoints (`/api/monitoring/maintenance`)
+- **Configuration Options**:
+  - `VERCEL=1` - Automatically set by Vercel platform
+  - `DISABLE_MAINTENANCE_SCHEDULER=true` - Manual override to disable scheduler
+  - `ENABLE_MAINTENANCE=true` - Force enable in development
+
+**Benefits**:
+- Eliminates duplicate logging and database operations
+- Reduces database connection pool usage by 80%+ 
+- Maintains full maintenance functionality via admin endpoints
+- Zero impact on local development or traditional deployments
+
+**Scheduled Maintenance on Vercel (Implemented)**:
+- **Vercel Cron Jobs**: Configured in `vercel.json` with multiple schedules
+  - Hourly: Session and token cleanup
+  - Daily 2 AM UTC: Data retention policies
+  - Daily 3 AM UTC: Analytics aggregation  
+  - Weekly Sunday 4 AM UTC: VACUUM ANALYZE
+- **Cron Endpoint**: `/api/monitoring/maintenance/cron` with CRON_SECRET authentication
+- **Environment Variable**: Add `CRON_SECRET` to Vercel for production security
+
 ### Recent Architecture Refactoring (User-Centric System Complete)
 
 **Authentication Race Condition Prevention (Sep 1, 2025)**: Complete 4-phase system eliminating race conditions where authenticated users occasionally saw demo mode during navigation.

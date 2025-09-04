@@ -27,7 +27,8 @@ export class TemplateManagementService {
   }
 
   /**
-   * Initialize default system templates
+   * Initialize default system templates using UPSERT for idempotency
+   * This method is safe to call multiple times and handles concurrency
    */
   async initializeDefaultTemplates(): Promise<void> {
     try {
@@ -35,17 +36,43 @@ export class TemplateManagementService {
       
       await this.db.transaction(async (tx) => {
         for (const template of defaultTemplates) {
-          await tx
-            .insert(templates)
-            .values({
-              ...template,
-              isDefault: true,
-              userId: null
-            })
-            .onConflictDoNothing();
+          // Check if template already exists
+          const existing = await tx
+            .select()
+            .from(templates)
+            .where(and(
+              eq(templates.slug, template.slug!),
+              eq(templates.isDefault, true)
+            ))
+            .limit(1);
+          
+          if (existing.length === 0) {
+            // Insert new template
+            await tx
+              .insert(templates)
+              .values({
+                ...template,
+                isDefault: true,
+                userId: null
+              });
+          } else {
+            // Update existing template if needed
+            await tx
+              .update(templates)
+              .set({
+                name: template.name,
+                description: template.description,
+                sampleInput: template.sampleInput,
+                promptStructure: template.promptStructure,
+              })
+              .where(and(
+                eq(templates.slug, template.slug!),
+                eq(templates.isDefault, true)
+              ));
+          }
         }
       });
-      console.log('Default templates initialization completed');
+      console.log('✅ Default templates initialized/updated successfully');
     } catch (error) {
       console.error('Error initializing default templates:', error);
       // Don't throw - allow app to continue even if templates fail to initialize

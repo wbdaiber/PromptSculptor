@@ -51,9 +51,20 @@ export class DatabaseMaintenanceService extends EventEmitter {
     });
     this.db = drizzle(this.pool);
     
-    // Start maintenance scheduler
-    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_MAINTENANCE === 'true') {
+    // Detect if running in Vercel serverless environment
+    const isVercel = process.env.VERCEL === '1';
+    const isDisabled = process.env.DISABLE_MAINTENANCE_SCHEDULER === 'true';
+    
+    // Only start scheduler in non-serverless environments
+    // In Vercel, maintenance tasks should be triggered via API endpoints or Vercel Cron Jobs
+    if (!isVercel && !isDisabled && (process.env.NODE_ENV === 'production' || process.env.ENABLE_MAINTENANCE === 'true')) {
       this.startMaintenanceScheduler();
+      console.log('🔧 Database maintenance scheduler started (non-serverless environment)');
+    } else if (isVercel) {
+      console.log('ℹ️ Database maintenance scheduler disabled (Vercel serverless environment detected)');
+      console.log('ℹ️ Use admin API endpoints or Vercel Cron Jobs to trigger maintenance tasks');
+    } else if (isDisabled) {
+      console.log('ℹ️ Database maintenance scheduler disabled (DISABLE_MAINTENANCE_SCHEDULER=true)');
     }
   }
 
@@ -544,6 +555,7 @@ export class DatabaseMaintenanceService extends EventEmitter {
 
   /**
    * Start maintenance scheduler
+   * Note: This is disabled in Vercel serverless environments to prevent duplicate executions
    */
   private startMaintenanceScheduler(): void {
     console.log('🔧 Starting database maintenance scheduler');

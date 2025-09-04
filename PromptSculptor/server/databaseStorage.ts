@@ -42,7 +42,6 @@ export interface IDatabaseStorage extends IStorage {
  */
 export class DatabaseStorage implements IDatabaseStorage {
   private userId?: string;
-  private static templatesInitialized = false;
   
   // Service instances (using singletons for efficiency)
   private userService = userManagementService;
@@ -53,20 +52,14 @@ export class DatabaseStorage implements IDatabaseStorage {
   constructor(userId?: string) {
     this.userId = userId;
     
-    // Initialize default templates only once
-    if (!DatabaseStorage.templatesInitialized) {
-      this.initializeDefaultTemplates().catch(console.error);
-      DatabaseStorage.templatesInitialized = true;
-    }
+    // REMOVED: Automatic template initialization
+    // Templates should only be initialized via explicit command (npm run db:seed-templates)
+    // This prevents duplicate templates from being created on every worker spawn in Vercel
   }
 
   // ============================================================================
   // TEMPLATE OPERATIONS - Delegated to TemplateManagementService
   // ============================================================================
-
-  private async initializeDefaultTemplates(): Promise<void> {
-    await this.templateService.initializeDefaultTemplates();
-  }
 
   async getTemplate(id: string): Promise<Template | undefined> {
     return await this.templateService.getTemplate(id);

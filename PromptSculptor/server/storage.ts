@@ -48,6 +48,7 @@ export class MemStorage implements IStorage {
       const fullTemplate: Template = { 
         ...template, 
         id,
+        slug: template.slug || null,
         userId: null,
         isDefault: true,
         createdAt: new Date()
@@ -192,6 +193,7 @@ export class MemStorage implements IStorage {
     const template: Template = { 
       ...insertTemplate, 
       id,
+      slug: insertTemplate.slug || null,
       createdAt: new Date(),
       isDefault: insertTemplate.isDefault || false,
       userId: insertTemplate.userId || null

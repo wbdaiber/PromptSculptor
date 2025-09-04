@@ -25,6 +25,7 @@ export class TemplateService {
     if (!TemplateService.defaultTemplates) {
       TemplateService.defaultTemplates = [
         {
+          slug: "default-analysis",
           name: "Analysis",
           type: "analysis",
           description: "Data analysis, research, and insights",
@@ -38,6 +39,7 @@ export class TemplateService {
           }
         },
         {
+          slug: "default-writing",
           name: "Writing",
           type: "writing",
           description: "Content creation and copywriting",
@@ -51,6 +53,7 @@ export class TemplateService {
           }
         },
         {
+          slug: "default-coding",
           name: "Coding",
           type: "coding",
           description: "Programming and development tasks",
@@ -64,6 +67,7 @@ export class TemplateService {
           }
         },
         {
+          slug: "default-custom",
           name: "Custom",
           type: "custom",
           description: "Start from scratch with your own requirements",
