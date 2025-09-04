@@ -40,13 +40,32 @@ async function handleTemplateCreation(req: any, res: any) {
     
     res.status(201).json(newTemplate);
   } catch (error) {
+    console.error('[Template Creation Error]:', error);
+    console.error('[Template Creation Error - Stack]:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[Template Creation Error - Request Body]:', req.body);
+    console.error('[Template Creation Error - User ID]:', req.userId);
+    
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
         error: "Invalid template data",
         details: error.errors
       });
     }
-    res.status(500).json({ message: "Failed to create template" });
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Template Creation Error - Message]:', errorMessage);
+    
+    // Return more detailed error in development/debugging
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'development';
+    res.status(500).json({ 
+      message: "Failed to create template",
+      error: isDevelopment ? errorMessage : undefined,
+      details: isDevelopment ? {
+        dbConfigured: !!process.env.DATABASE_URL,
+        userId: req.userId,
+        hasAuth: !!(req.user || req.userId)
+      } : undefined
+    });
   }
 }
 
@@ -64,12 +83,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/monitoring', monitoringRoutes);
   
   // Health check and auth status
-  app.get("/api/health", (req, res) => {
+  app.get("/api/health", async (req, res) => {
     const authStatus = getAuthStatus();
+    
+    // Test database connection
+    let dbStatus = "unknown";
+    let dbError = null;
+    try {
+      // Try to get default templates which tests the database connection
+      const templates = await templateManagementService.getDefaultTemplates();
+      dbStatus = "connected";
+    } catch (error) {
+      dbStatus = "error";
+      dbError = error instanceof Error ? error.message : "Unknown database error";
+      console.error("[Health Check] Database connection error:", error);
+    }
+    
     res.json({
       status: "healthy",
       timestamp: new Date().toISOString(),
-      authentication: authStatus
+      authentication: authStatus,
+      database: {
+        status: dbStatus,
+        error: dbError,
+        url_configured: !!process.env.DATABASE_URL
+      }
     });
   });
   

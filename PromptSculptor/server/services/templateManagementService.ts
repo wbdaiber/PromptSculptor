@@ -14,16 +14,55 @@ export class TemplateManagementService {
   private static pool: Pool | null = null;
 
   constructor() {
-    if (!TemplateManagementService.pool) {
-      TemplateManagementService.pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
-      });
+    try {
+      if (!TemplateManagementService.pool) {
+        const dbUrl = process.env.DATABASE_URL;
+        if (!dbUrl) {
+          console.error('[TemplateManagementService] DATABASE_URL is not set in environment variables');
+          throw new Error('DATABASE_URL environment variable is not configured');
+        }
+        console.log('[TemplateManagementService] Initializing database pool with URL:', dbUrl ? 'URL exists' : 'URL missing');
+        
+        // Vercel serverless-friendly pool configuration
+        TemplateManagementService.pool = new Pool({
+          connectionString: dbUrl,
+          max: process.env.VERCEL ? 1 : 10, // Use single connection in Vercel
+          idleTimeoutMillis: process.env.VERCEL ? 10000 : 30000, // Shorter timeout in Vercel
+          connectionTimeoutMillis: 5000, // Increased timeout for cold starts
+          // Additional settings for serverless environments
+          statement_timeout: 60000,
+          query_timeout: 60000,
+          application_name: 'promptsculptor-vercel'
+        });
+        
+        // Test the connection immediately
+        TemplateManagementService.pool.on('error', (err) => {
+          console.error('[TemplateManagementService] Unexpected database pool error:', err);
+        });
+      }
+      
+      this.db = drizzle(TemplateManagementService.pool);
+      this.templateService = TemplateService.getInstance();
+      console.log('[TemplateManagementService] Service initialized successfully');
+    } catch (error) {
+      console.error('[TemplateManagementService] Failed to initialize service:', error);
+      throw error;
     }
-    this.db = drizzle(TemplateManagementService.pool);
-    this.templateService = TemplateService.getInstance();
+  }
+
+  /**
+   * Clean up database connections (useful for serverless environments)
+   */
+  static async cleanup(): Promise<void> {
+    if (TemplateManagementService.pool) {
+      try {
+        await TemplateManagementService.pool.end();
+        TemplateManagementService.pool = null;
+        console.log('[TemplateManagementService] Database pool closed successfully');
+      } catch (error) {
+        console.error('[TemplateManagementService] Error closing database pool:', error);
+      }
+    }
   }
 
   /**
@@ -220,15 +259,35 @@ export class TemplateManagementService {
    */
   async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
     try {
+      console.log('[TemplateManagementService] Creating template with data:', insertTemplate);
+      
+      if (!this.db) {
+        console.error('[TemplateManagementService] Database connection not initialized');
+        throw new Error('Database connection not initialized');
+      }
+      
       const result = await this.db
         .insert(templates)
         .values(insertTemplate)
         .returning();
       
+      if (!result || result.length === 0) {
+        console.error('[TemplateManagementService] No result returned from database insert');
+        throw new Error('Failed to create template - no result returned');
+      }
+      
+      console.log('[TemplateManagementService] Template created successfully:', result[0]);
       return result[0];
     } catch (error) {
-      console.error('Error creating template:', error);
-      throw new Error('Failed to create template');
+      console.error('[TemplateManagementService] Error creating template:', error);
+      console.error('[TemplateManagementService] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error('[TemplateManagementService] Database URL exists:', !!process.env.DATABASE_URL);
+      
+      if (error instanceof Error && error.message.includes('connect')) {
+        throw new Error('Database connection failed - please check DATABASE_URL configuration');
+      }
+      
+      throw new Error(`Failed to create template: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -512,5 +571,15 @@ export class TemplateManagementService {
   }
 }
 
-// Export singleton instance
-export const templateManagementService = new TemplateManagementService();
+// Lazy initialization for serverless environments
+let _instance: TemplateManagementService | null = null;
+
+export const getTemplateManagementService = (): TemplateManagementService => {
+  if (!_instance) {
+    _instance = new TemplateManagementService();
+  }
+  return _instance;
+};
+
+// For backward compatibility, export a getter that creates the instance lazily
+export const templateManagementService = getTemplateManagementService();
