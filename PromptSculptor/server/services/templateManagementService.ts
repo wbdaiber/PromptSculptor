@@ -200,7 +200,18 @@ export class TemplateManagementService {
         .where(eq(templates.isDefault, true))
         .orderBy(templates.type);
       
-      return result;
+      // Deduplicate by type - keep only the first template of each type
+      const seen = new Set<string>();
+      const deduplicated = result.filter(template => {
+        if (seen.has(template.type)) {
+          console.warn(`[TemplateManagementService] Duplicate default template found for type: ${template.type}`);
+          return false;
+        }
+        seen.add(template.type);
+        return true;
+      });
+      
+      return deduplicated;
     } catch (error) {
       console.error('Error fetching default templates:', error);
       // Fallback: Return in-memory default templates if database query fails
