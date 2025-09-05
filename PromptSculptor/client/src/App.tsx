@@ -4,8 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/context/AuthContext";
 import { AdminAuthProvider } from "@/context/AdminAuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Favorites from "@/pages/favorites";
@@ -89,8 +87,6 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
-            <Analytics />
-            <SpeedInsights />
           </TooltipProvider>
         </AdminAuthProvider>
       </AuthProvider>
