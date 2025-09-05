@@ -302,7 +302,7 @@ export default function InputSection({
           </div>
           
           {/* Input Tools */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-100">
             <div className="flex items-center space-x-3">
               <Button 
                 variant="ghost" 
@@ -321,13 +321,14 @@ export default function InputSection({
                 disabled={!naturalLanguageInput.trim()}
               >
                 <BookmarkPlus className="h-3 w-3 mr-1" />
-                Save as Template
+                <span className="hidden sm:inline">Save as Template</span>
+                <span className="sm:hidden">Save</span>
               </Button>
             </div>
             <Button 
               onClick={handleGenerate}
               disabled={isGenerating || !naturalLanguageInput.trim()}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
             >
               {isGenerating ? "Generating..." : "Generate Prompt"}
               <ArrowRight className="h-4 w-4 ml-2" />
