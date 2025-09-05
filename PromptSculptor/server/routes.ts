@@ -136,12 +136,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Always return default templates, add user templates if authenticated
       const defaultTemplates = await templateManagementService.getDefaultTemplates();
       
-      if (req.userId) {
+      // CRITICAL: Check both req.userId AND req.user to ensure proper authentication
+      // In serverless environments, req.userId might persist if not properly cleared
+      if (req.userId && req.user && req.user.id === req.userId) {
         // Authenticated user - return defaults + user templates
         const userTemplates = await templateManagementService.getUserTemplates(req.userId);
         res.json([...defaultTemplates, ...userTemplates]);
       } else {
-        // Guest user - return only defaults
+        // Guest user or inconsistent auth state - return only defaults
+        if (req.userId && !req.user) {
+          console.warn(`Inconsistent auth state: userId=${req.userId} but no user session`);
+        }
         res.json(defaultTemplates);
       }
     } catch (error) {

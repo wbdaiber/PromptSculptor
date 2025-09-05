@@ -190,7 +190,10 @@ function setupPassport() {
 export function extractUserId(req: Request, res: Response, next: NextFunction) {
   const sessionId = req.sessionID;
   
-  // If there's no session, continue without user
+  // CRITICAL: Always clear userId first to prevent stale data
+  req.userId = undefined;
+  
+  // If there's no session or user, continue without user
   if (!sessionId || !req.user) {
     next();
     return;
