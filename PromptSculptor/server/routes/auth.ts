@@ -36,11 +36,13 @@ const deleteAccountSchema = z.object({
 // Lightweight session check endpoint (for guests and users)
 router.get('/me', (req: Request, res: Response) => {
   if (req.user) {
-    // User is authenticated
+    // User is authenticated - wrap in user object as expected by client
     res.json({
-      id: req.user.id,
-      email: req.user.email,
-      username: req.user.username,
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        username: req.user.username,
+      }
     });
   } else {
     // Guest user - return 401 but don't throw
@@ -202,24 +204,6 @@ router.post('/logout', (req: Request, res: Response) => {
       
       res.json({ message: 'Logout successful' });
     });
-  });
-});
-
-// Get current user
-router.get('/me', (req: Request, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ 
-      error: 'Not authenticated',
-      message: 'No active session'
-    });
-  }
-  
-  res.json({ 
-    user: { 
-      id: req.user.id, 
-      username: req.user.username,
-      email: req.user.email 
-    }
   });
 });
 

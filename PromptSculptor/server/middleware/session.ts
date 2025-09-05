@@ -48,6 +48,8 @@ export function setupSession(app: Express) {
           conString: process.env.DATABASE_URL,
           tableName: 'user_sessions',
           createTableIfMissing: true,
+          // Vercel-optimized settings
+          pruneSessionInterval: false, // Disable auto-pruning in serverless
         })
       : undefined, // Use default MemoryStore in development
     secret: process.env.SESSION_SECRET || 'dev-session-secret',
@@ -57,8 +59,12 @@ export function setupSession(app: Express) {
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
       httpOnly: true, // Prevent XSS attacks
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'strict', // CSRF protection
+      sameSite: process.env.VERCEL ? 'lax' : 'strict', // 'lax' for Vercel to handle redirects
+      domain: process.env.COOKIE_DOMAIN, // Set if using custom domain
+      path: '/', // Ensure cookie works across all paths
     },
+    // Vercel-specific: trust proxy for correct IP and protocol detection
+    proxy: process.env.VERCEL === '1' || process.env.NODE_ENV === 'production',
   };
   
   app.use(session(sessionConfig));
