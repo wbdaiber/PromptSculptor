@@ -162,7 +162,7 @@ export default function Home() {
                 </div>
                 <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">PromptCraft</h1>
               </div>
-              <span className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">
+              <span className="text-sm text-slate-500 dark:text-slate-400 hidden tagline:block">
                 Transform natural language to structured LLM prompts
               </span>
             </div>
