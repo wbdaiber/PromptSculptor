@@ -122,7 +122,7 @@ export default function Recent() {
   };
 
   const handleBackToHome = () => {
-    setLocation("/");
+    setLocation("/app");
   };
 
   if (loading) {

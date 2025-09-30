@@ -21,15 +21,28 @@ const getTemplateIcon = (templateType: string) => {
   return icons[templateType as keyof typeof icons] || icons.custom;
 };
 
-const formatTimeAgo = (date: Date) => {
-  const now = new Date();
-  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+const formatTimeAgo = (date: Date | string | null | undefined) => {
+  if (!date) return "Unknown";
   
-  if (diffInHours < 1) return "Just now";
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 7) return `${diffInDays}d ago`;
-  return date.toLocaleDateString();
+  try {
+    const now = new Date();
+    const dateObj = new Date(date);
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return "Unknown";
+    }
+    
+    const diffInHours = Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return "Just now";
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    return dateObj.toLocaleDateString();
+  } catch (error) {
+    return "Unknown";
+  }
 };
 
 export default function RecentPromptCard({
