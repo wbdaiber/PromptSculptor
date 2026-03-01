@@ -1,6 +1,7 @@
 import express from 'express';
 import passport from 'passport';
 import { setupAdminOAuth, getAdminOAuthConfig, requireAdminAuth } from '../config/oauth.js';
+import { isSafeRedirect } from '../utils/sanitizer.js';
 
 const router = express.Router();
 
@@ -16,7 +17,8 @@ try {
 router.get('/google', (req, res, next) => {
   // Store the intended redirect URL in session
   const returnTo = req.query.returnTo as string;
-  if (returnTo) {
+  // Validate redirect URL to prevent Open Redirect vulnerability
+  if (returnTo && isSafeRedirect(returnTo)) {
     (req.session as any).adminReturnTo = returnTo;
   }
   
@@ -33,9 +35,14 @@ router.get('/google/callback',
   }),
   (req, res) => {
     // Successful authentication
-    const returnTo = (req.session as any).adminReturnTo || '/app/admin';
+    const storedReturnTo = (req.session as any).adminReturnTo;
     delete (req.session as any).adminReturnTo;
     
+    // Extra validation before redirect to be safe
+    const returnTo = (storedReturnTo && isSafeRedirect(storedReturnTo))
+      ? storedReturnTo
+      : '/app/admin';
+
     res.redirect(returnTo);
   }
 );
