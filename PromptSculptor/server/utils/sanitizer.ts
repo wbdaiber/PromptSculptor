@@ -34,6 +34,20 @@ export function sanitizeInput(input: string, maxLength: number = 5000): string {
 }
 
 /**
+ * Checks if a redirect URL is safe (internal to the application)
+ * Prevents open redirect vulnerabilities
+ */
+export function isSafeRedirect(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+
+  // Must start with a single slash and NOT be protocol-relative (//)
+  // Also block any URLs that start with / followed by \ which some browsers treat as //
+  return url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\');
+}
+
+/**
  * Sanitizes output that might be displayed as HTML
  * Allows basic formatting but removes dangerous content
  */
