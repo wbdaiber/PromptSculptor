@@ -560,38 +560,33 @@ ${request.includeConstraints ? 'Add specific constraints and limitations.' : ''}
       ],
       response_format: { type: "json_object" },
       temperature: MODEL_CONFIG.openai.temperature,
-      max_tokens: MODEL_CONFIG.openai.maxTokens,
+      max_completion_tokens: MODEL_CONFIG.openai.maxTokens,
     });
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
-    
+
     const wordCount = result.generatedPrompt.split(/\s+/).length;
-    
+
     return {
       generatedPrompt: result.generatedPrompt,
       title: result.title || "Generated Prompt",
       wordCount,
     };
   } catch (error) {
-    // SECURE: Log errors safely without exposing sensitive details
+    // Log error details for diagnosis (error messages are safe — no user data or keys)
     const errorId = Date.now().toString(36);
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`OpenAI API error ${errorId}:`, error instanceof Error ? error.message : 'Unknown error');
-    } else {
-      console.error(`AI service error ${errorId}: OpenAI API unavailable`);
-    }
-    
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`OpenAI API error ${errorId} [model=${MODEL_CONFIG.openai.modelId}]:`, errorMsg);
+
     // If it's a API key error (401, quota, billing), fall back to enhanced demo mode
     if (error instanceof Error && (
-      error.message.includes('quota') || 
-      error.message.includes('billing') || 
+      error.message.includes('quota') ||
+      error.message.includes('billing') ||
       error.message.includes('429') ||
       error.message.includes('401') ||
       error.message.includes('Incorrect API key')
     )) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('OpenAI API key issue, using enhanced demo mode');
-      }
+      console.warn('OpenAI API key issue, using enhanced demo mode');
       return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
         isAuthenticated: true,
         availableServices: [],
@@ -599,7 +594,7 @@ ${request.includeConstraints ? 'Add specific constraints and limitations.' : ''}
         message: "Check your OpenAI API key - it may be invalid or have billing issues."
       });
     }
-    
+
     throw new Error("Failed to generate structured prompt with OpenAI. Please try again.");
   }
 }
