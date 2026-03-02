@@ -15,6 +15,11 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   CLAUDE_API_KEY: z.string().min(1).optional(), // Legacy support
   GEMINI_API_KEY: z.string().min(1).optional(),
+
+  // AI Model IDs (Optional - override defaults in server/config/models.ts)
+  ANTHROPIC_MODEL: z.string().min(1).optional(),
+  OPENAI_MODEL: z.string().min(1).optional(),
+  GEMINI_MODEL: z.string().min(1).optional(),
   
   // Security keys (deprecated - using Google OAuth for admin auth)
   ADMIN_API_KEY: z.string().min(32).optional(),
