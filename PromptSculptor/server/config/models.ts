@@ -6,7 +6,7 @@ export const MODEL_CONFIG = {
     temperature: 0.7,
   },
   openai: {
-    modelId: process.env.OPENAI_MODEL || "gpt-5.2-pro",
+    modelId: process.env.OPENAI_MODEL || "gpt-5.2",
     maxTokens: 2000,
     temperature: 0.7,
   },
