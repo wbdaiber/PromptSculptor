@@ -11,6 +11,6 @@ export const MODEL_CONFIG = {
     temperature: 0.7,
   },
   gemini: {
-    modelId: process.env.GEMINI_MODEL || "gemini-3.1-pro-preview",
+    modelId: process.env.GEMINI_MODEL || "gemini-pro-latest",
   },
 } as const;

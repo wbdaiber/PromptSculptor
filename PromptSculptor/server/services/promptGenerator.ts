@@ -487,19 +487,14 @@ ${request.includeConstraints ? '- Add specific constraints and limitations.' : '
       wordCount
     };
   } catch (error) {
-    // SECURE: Log errors safely without exposing sensitive details
+    // Log error details for diagnosis (error messages are safe — no user data or keys)
     const errorId = Date.now().toString(36);
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`Claude API error ${errorId}:`, error instanceof Error ? error.message : 'Unknown error');
-    } else {
-      console.error(`AI service error ${errorId}: Claude API unavailable`);
-    }
-    
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Claude API error ${errorId} [model=${MODEL_CONFIG.anthropic.modelId}]:`, errorMsg);
+
     // If it's a quota/billing error, fall back to enhanced demo mode
-    if (error instanceof Error && (error.message.includes('quota') || error.message.includes('billing') || error.message.includes('429'))) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Anthropic quota exceeded, using enhanced demo mode');
-      }
+    if (errorMsg.includes('quota') || errorMsg.includes('billing') || errorMsg.includes('429')) {
+      console.warn('Anthropic quota exceeded, using enhanced demo mode');
       return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
         isAuthenticated: true,
         availableServices: [],
@@ -507,7 +502,7 @@ ${request.includeConstraints ? '- Add specific constraints and limitations.' : '
         message: "Anthropic API quota exceeded. Check your API key billing status."
       });
     }
-    
+
     throw new Error("Failed to generate structured prompt with Claude. Please try again.");
   }
 }
@@ -579,13 +574,13 @@ ${request.includeConstraints ? 'Add specific constraints and limitations.' : ''}
     console.error(`OpenAI API error ${errorId} [model=${MODEL_CONFIG.openai.modelId}]:`, errorMsg);
 
     // If it's a API key error (401, quota, billing), fall back to enhanced demo mode
-    if (error instanceof Error && (
-      error.message.includes('quota') ||
-      error.message.includes('billing') ||
-      error.message.includes('429') ||
-      error.message.includes('401') ||
-      error.message.includes('Incorrect API key')
-    )) {
+    if (
+      errorMsg.includes('quota') ||
+      errorMsg.includes('billing') ||
+      errorMsg.includes('429') ||
+      errorMsg.includes('401') ||
+      errorMsg.includes('Incorrect API key')
+    ) {
       console.warn('OpenAI API key issue, using enhanced demo mode');
       return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
         isAuthenticated: true,
@@ -695,29 +690,19 @@ Remember to output only valid JSON with the exact format specified above.`;
       wordCount,
     };
   } catch (error) {
-    // SECURE: Log errors safely without exposing sensitive details
+    // Log error details for diagnosis (error messages are safe — no user data or keys)
     const errorId = Date.now().toString(36);
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`Gemini API error ${errorId}:`, error instanceof Error ? error.message : 'Unknown error');
-    } else {
-      console.error(`AI service error ${errorId}: Gemini API unavailable`);
-    }
-    
-    // Fall back to enhanced demo mode for any Gemini API errors
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Gemini API error, using enhanced demo mode:', error instanceof Error ? error.message : 'Unknown error');
-    }
-    
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Gemini API error ${errorId} [model=${MODEL_CONFIG.gemini.modelId}]:`, errorMsg);
+
     // Determine appropriate message based on error type
     let message = "Gemini generation encountered an issue. Using demo mode instead.";
-    if (error instanceof Error) {
-      if (error.message.includes('quota') || error.message.includes('billing') || error.message.includes('429')) {
-        message = "Gemini API quota exceeded. Check your API key billing status.";
-      } else if (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key') || error.message.includes('authentication')) {
-        message = "Check your Gemini API key - it may be invalid or need to be enabled in Google Cloud Console.";
-      } else if (error.message.includes('model')) {
-        message = "Gemini model error. The API key may not have access to this model.";
-      }
+    if (errorMsg.includes('quota') || errorMsg.includes('billing') || errorMsg.includes('429')) {
+      message = "Gemini API quota exceeded. Check your API key billing status.";
+    } else if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('API key') || errorMsg.includes('authentication')) {
+      message = "Check your Gemini API key - it may be invalid or need to be enabled in Google Cloud Console.";
+    } else if (errorMsg.includes('model')) {
+      message = "Gemini model error. The API key may not have access to this model.";
     }
     
     return EnhancedDemoMode.generateEnhancedDemoPrompt(request, {
