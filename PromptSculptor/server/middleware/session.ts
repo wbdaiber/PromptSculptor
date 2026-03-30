@@ -3,6 +3,7 @@ import connectPgSimple from 'connect-pg-simple';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { DatabaseStorage } from '../databaseStorage.js';
+import { config } from '../config/env.js';
 import type { Express, Request, Response, NextFunction } from 'express';
 import type { User } from '../../shared/schema.js';
 
@@ -52,7 +53,7 @@ export function setupSession(app: Express) {
           pruneSessionInterval: false, // Disable auto-pruning in serverless
         })
       : undefined, // Use default MemoryStore in development
-    secret: process.env.SESSION_SECRET || 'dev-session-secret',
+    secret: config.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
