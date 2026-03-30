@@ -41,6 +41,17 @@ export class DatabaseMaintenanceService extends EventEmitter {
     dataRetention: 30 * 24 * 60 * 60 * 1000,    // 30 days
   };
 
+  // Whitelist of allowed tables for VACUUM ANALYZE to prevent SQL injection
+  private readonly ALLOWED_TABLES = [
+    'users',
+    'prompts',
+    'templates',
+    'user_api_keys',
+    'user_sessions',
+    'password_reset_tokens',
+    'analytics_daily_summary'
+  ];
+
   private constructor() {
     super();
     this.pool = new Pool({
@@ -334,10 +345,14 @@ export class DatabaseMaintenanceService extends EventEmitter {
     
     try {
       if (tableName) {
+        // Security: Validate tableName against whitelist to prevent SQL injection
+        if (!this.ALLOWED_TABLES.includes(tableName)) {
+          throw new Error(`Invalid table name for VACUUM ANALYZE: ${tableName}`);
+        }
         // Vacuum specific table
         await this.db.execute(sql.raw(`VACUUM ANALYZE ${tableName}`));
       } else {
-        // Vacuum all user tables
+        // Vacuum all user tables (except analytics_daily_summary which is handled separately)
         const tables = ['users', 'prompts', 'templates', 'user_api_keys', 'user_sessions', 'password_reset_tokens'];
         for (const table of tables) {
           await this.db.execute(sql.raw(`VACUUM ANALYZE ${table}`));
