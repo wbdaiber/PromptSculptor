@@ -5,7 +5,6 @@ import {
   type InsertTemplate,
   type User,
   type UserApiKey,
-  type InsertUserApiKey,
   type PasswordResetToken,
   type InsertPasswordResetToken,
 } from "../shared/schema.js";
