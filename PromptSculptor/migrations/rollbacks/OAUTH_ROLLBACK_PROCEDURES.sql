@@ -16,9 +16,6 @@
 -- # GOOGLE_CLIENT_ID=your-google-client-id-here
 -- # GOOGLE_CLIENT_SECRET=your-google-client-secret-here  
 -- # ADMIN_ALLOWED_EMAILS=admin@yourdomain.com,backup-admin@yourdomain.com
---
--- Optionally restore API key authentication:
--- ADMIN_API_KEY=your-secure-api-key-here
 
 -- STEP 2: Code Rollback Requirements
 -- ----------------------------------
@@ -65,7 +62,6 @@
 -- 3. Verify environment variables:
 --    - GOOGLE_CLIENT_ID should be undefined or commented out
 --    - ADMIN_ALLOWED_EMAILS should be undefined or commented out
---    - ADMIN_API_KEY should be defined (if using API key auth)
 
 -- 4. Test admin access:
 --    - OAuth login should be unavailable

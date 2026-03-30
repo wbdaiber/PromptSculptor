@@ -10,10 +10,6 @@ import { config } from '../config/env.js';
 const getValidAPIKeys = (): Set<string> => {
   const keys = new Set<string>();
   
-  if (config.ADMIN_API_KEY) {
-    keys.add(config.ADMIN_API_KEY);
-  }
-  
   // In development, allow a simple default key for testing
   if (config.NODE_ENV === 'development') {
     keys.add('dev-api-key-123');

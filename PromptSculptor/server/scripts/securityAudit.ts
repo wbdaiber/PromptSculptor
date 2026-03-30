@@ -68,15 +68,6 @@ class SecurityAuditor {
       recommendation: !/^[0-9a-fA-F]{64}$/.test(config.ENCRYPTION_KEY) ? 'Generate proper 64-character hex encryption key' : undefined
     });
 
-    // Check admin API key
-    this.addTest({
-      name: 'Admin API Key Security',
-      status: config.ADMIN_API_KEY && config.ADMIN_API_KEY.length >= 32 ? 'pass' : 'fail',
-      details: `Admin API key length: ${config.ADMIN_API_KEY?.length || 0} characters`,
-      severity: config.ADMIN_API_KEY && config.ADMIN_API_KEY.length >= 32 ? 'low' : 'high',
-      recommendation: !config.ADMIN_API_KEY || config.ADMIN_API_KEY.length < 32 ? 'Generate secure admin API key (32+ characters)' : undefined
-    });
-
     console.log('✅ Environment security audit completed\n');
   }
 

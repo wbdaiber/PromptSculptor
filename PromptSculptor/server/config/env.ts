@@ -21,9 +21,6 @@ const envSchema = z.object({
   OPENAI_MODEL: z.string().min(1).optional(),
   GEMINI_MODEL: z.string().min(1).optional(),
   
-  // Security keys (deprecated - using Google OAuth for admin auth)
-  ADMIN_API_KEY: z.string().min(32).optional(),
-  
   // Google OAuth Configuration
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
@@ -54,7 +51,6 @@ export function validateEnv(): EnvConfig {
     
     // Additional validation for production environments
     if (env.NODE_ENV === 'production') {
-      // Note: ADMIN_API_KEY is deprecated in favor of Google OAuth
       // AI API keys are not required - users provide their own keys
       // Templates work without any AI service keys
       
