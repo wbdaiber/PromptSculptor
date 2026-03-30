@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { GoogleGenAI, type GenerateContentParameters, type GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import { type GeneratePromptRequest } from "../../shared/schema.js";
 import { APIKeyManager } from "./apiKeyManager.js";
 import { UserApiKeyManager } from "./userApiKeyManager.js";
@@ -654,7 +654,7 @@ Remember to output only valid JSON with the exact format specified above.`;
       contents: fullPrompt,
       // Pass config directly if needed (kept minimal here)
       // config: { temperature: 0.7 }
-    } as GenerateContentParameters);
+    });
     const text = response.text ?? '';
     
     // Parse the JSON response from Gemini
