@@ -17,6 +17,10 @@
       "dest": "/assets/$1"
     },
     {
+      "src": "/(.*\\.(png|jpg|jpeg|gif|svg|ico|webp|avif|woff|woff2|ttf|eot))",
+      "dest": "/$1"
+    },
+    {
       "src": "/app/(.*)",
       "dest": "/index.html"
     },
