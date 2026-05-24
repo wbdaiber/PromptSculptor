@@ -58,7 +58,7 @@ node server/test-race-conditions.js                   # Comprehensive race condi
 - Express API with TypeScript, runs on port 5001
 - Storage abstraction: `IStorage` interface with memory/database implementations
 - Security: Helmet CSP, CORS, rate limiting, input sanitization
-- Session-based auth with optional API key authentication
+- Session-based auth
 
 **Shared (`/shared/`)**
 - Database schema definitions using Drizzle ORM with enterprise-grade optimization
@@ -544,7 +544,7 @@ node server/test-race-conditions.js                   # Comprehensive race condi
 
 **Environment Configuration**:
 ```bash
-# Google OAuth Configuration (replaces ADMIN_API_KEY)
+# Google OAuth Configuration
 GOOGLE_CLIENT_ID=your-google-client-id-here
 GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 ADMIN_ALLOWED_EMAILS=admin@yourdomain.com,backup-admin@yourdomain.com
@@ -565,7 +565,6 @@ ADMIN_ALLOWED_EMAILS=admin@yourdomain.com,backup-admin@yourdomain.com
 - **Enterprise Integration**: Seamless integration with existing Google Workspace accounts
 
 **Migration Notes**:
-- **API Key System**: `ADMIN_API_KEY` environment variable is now optional and deprecated
 - **Backward Compatibility**: All existing admin dashboard functionality preserved
 - **Session Storage**: Uses secure HTTP-only cookies instead of API key headers
 - **Monitoring Routes**: All `/api/monitoring/*` endpoints now require OAuth authentication
