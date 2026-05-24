@@ -51,7 +51,7 @@ async function testWelcomeEmail() {
     const { data, error } = await resend.emails.send({
       from: EMAIL_FROM!,
       to: testEmail,
-      subject: 'Welcome to PromptSculptor! 🎨',
+      subject: 'Welcome to Markdown Prompt Creator! 🎨',
       html: generateWelcomeHtml({ userName: 'Test User', appUrl: APP_URL }),
       text: generateWelcomeText({ userName: 'Test User', appUrl: APP_URL }),
     });
@@ -80,7 +80,7 @@ function generateWelcomeHtml(params: { userName: string; appUrl: string }): stri
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to PromptSculptor!</title>
+        <title>Welcome to Markdown Prompt Creator!</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -154,20 +154,20 @@ function generateWelcomeHtml(params: { userName: string; appUrl: string }): stri
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">🎨 PromptSculptor</div>
+            <div class="logo">🎨 Markdown Prompt Creator</div>
           </div>
           
-          <h1>Welcome to PromptSculptor!</h1>
+          <h1>Welcome to Markdown Prompt Creator!</h1>
           
           <div class="welcome-message">
             <strong>🎉 Hello ${userName}!</strong><br>
             Your account has been successfully created and you're ready to start crafting amazing prompts.
           </div>
           
-          <p>Welcome to PromptSculptor - your intelligent prompt engineering companion! We're excited to help you create, refine, and optimize prompts for all your AI projects.</p>
+          <p>Welcome to Markdown Prompt Creator - your intelligent prompt engineering companion! We're excited to help you create, refine, and optimize prompts for all your AI projects.</p>
           
           <div class="features">
-            <h3>🚀 What you can do with PromptSculptor:</h3>
+            <h3>🚀 What you can do with Markdown Prompt Creator:</h3>
             <ul>
               <li><strong>Smart Prompt Generation:</strong> Create professional prompts using natural language input</li>
               <li><strong>Multi-Model Support:</strong> Work with OpenAI GPT, Anthropic Claude, and Google Gemini</li>
@@ -182,12 +182,12 @@ function generateWelcomeHtml(params: { userName: string; appUrl: string }): stri
             <a href="${appUrl}/settings" class="button" style="color: white !important; text-decoration: none !important; background-color: #6B7280;">Setup API Keys</a>
           </div>
           
-          <p><strong>💡 Quick Tip:</strong> To unlock the full power of PromptSculptor, add your API keys in Settings. This enables personalized AI-powered prompt generation tailored to your needs.</p>
+          <p><strong>💡 Quick Tip:</strong> To unlock the full power of Markdown Prompt Creator, add your API keys in Settings. This enables personalized AI-powered prompt generation tailored to your needs.</p>
           
           <div class="footer">
             <p>Welcome aboard!<br>
-            The PromptSculptor Team</p>
-            <p>Need help? Contact our support team at support@promptsculptor.com</p>
+            The Markdown Prompt Creator Team</p>
+            <p>Need help? Contact our support team at support@markdownpromptcreator.com</p>
           </div>
         </div>
       </body>
@@ -199,15 +199,15 @@ function generateWelcomeText(params: { userName: string; appUrl: string }): stri
   const { userName, appUrl } = params;
 
   return `
-🎨 Welcome to PromptSculptor!
+🎨 Welcome to Markdown Prompt Creator!
 
 Hello ${userName}!
 
 🎉 Your account has been successfully created and you're ready to start crafting amazing prompts.
 
-Welcome to PromptSculptor - your intelligent prompt engineering companion! We're excited to help you create, refine, and optimize prompts for all your AI projects.
+Welcome to Markdown Prompt Creator - your intelligent prompt engineering companion! We're excited to help you create, refine, and optimize prompts for all your AI projects.
 
-🚀 What you can do with PromptSculptor:
+🚀 What you can do with Markdown Prompt Creator:
 
 • Smart Prompt Generation: Create professional prompts using natural language input
 • Multi-Model Support: Work with OpenAI GPT, Anthropic Claude, and Google Gemini  
@@ -219,14 +219,14 @@ Ready to get started?
 • Start creating prompts: ${appUrl}
 • Setup your API keys: ${appUrl}/settings
 
-💡 Quick Tip: To unlock the full power of PromptSculptor, add your API keys in Settings. This enables personalized AI-powered prompt generation tailored to your needs.
+💡 Quick Tip: To unlock the full power of Markdown Prompt Creator, add your API keys in Settings. This enables personalized AI-powered prompt generation tailored to your needs.
 
 If you have any questions or need assistance getting started, don't hesitate to reach out. We're here to help you make the most of your prompt engineering journey!
 
 Welcome aboard!
-The PromptSculptor Team
+The Markdown Prompt Creator Team
 
-Need help? Contact our support team at support@promptsculptor.com
+Need help? Contact our support team at support@markdownpromptcreator.com
   `.trim();
 }
 

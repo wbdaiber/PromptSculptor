@@ -75,7 +75,7 @@ export default function Documentation() {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <BookOpen className="text-white text-sm" />
                 </div>
-                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">PromptCraft Documentation</h1>
+                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Markdown Prompt Creator Documentation</h1>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -167,10 +167,10 @@ export default function Documentation() {
             <div className="text-center mb-12">
               <BookOpen className="h-16 w-16 text-blue-600 mx-auto mb-4" />
               <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-                PromptCraft Documentation
+                Markdown Prompt Creator Documentation
               </h1>
               <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-                Complete guide to using PromptCraft for transforming natural language into structured, powerful AI prompts optimized for Claude, GPT, Gemini, and other language models.
+                Complete guide to using Markdown Prompt Creator for transforming natural language into structured, powerful AI prompts optimized for Claude, GPT, Gemini, and other language models.
               </p>
             </div>
 
@@ -467,12 +467,12 @@ export default function Documentation() {
                     answer: "API keys are encrypted using AES-256-GCM before database storage and are never transmitted in plain text. They're only decrypted when creating API clients for your requests. We follow enterprise security standards."
                   },
                   {
-                    question: "Can I use PromptCraft without API keys?",
+                    question: "Can I use Markdown Prompt Creator without API keys?",
                     answer: "Yes! Demo Mode provides template-based prompt generation without API keys. However, you'll miss AI-powered generation, prompt saving, and custom templates. We recommend adding at least one API key for the full experience."
                   },
                   {
                     question: "Which AI models are supported?",
-                    answer: "PromptCraft supports OpenAI (GPT-4, GPT-3.5), Anthropic (Claude 3.5 Sonnet, Claude 3), and Google (Gemini Pro). You can optimize prompts for specific models using Advanced Options."
+                    answer: "Markdown Prompt Creator supports OpenAI (GPT-4, GPT-3.5), Anthropic (Claude 3.5 Sonnet, Claude 3), and Google (Gemini Pro). You can optimize prompts for specific models using Advanced Options."
                   },
                   {
                     question: "My prompts aren't generating. What's wrong?",
@@ -709,7 +709,7 @@ export default function Documentation() {
                       <h4 className="font-semibold mb-2">Rate Limits & Usage</h4>
                       <ul className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
                         <li>• Rate limits depend on your API provider plan</li>
-                        <li>• PromptCraft adds minimal processing overhead</li>
+                        <li>• Markdown Prompt Creator adds minimal processing overhead</li>
                         <li>• Failed requests automatically retry once</li>
                         <li>• Monitor usage in your provider's dashboard</li>
                       </ul>

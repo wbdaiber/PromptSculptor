@@ -316,7 +316,7 @@ ${request.useXMLTags ? '</output_format>' : ''}`;
   private static generateUserGuidance(options: DemoPromptOptions): { demoMessage: string; callToAction: string } {
     if (!options.isAuthenticated) {
       return {
-        demoMessage: "🎯 This is a demo prompt showcasing PromptSculptor's capabilities. Sign up to save your prompts and unlock AI-powered generation!",
+        demoMessage: "🎯 This is a demo prompt showcasing Markdown Prompt Creator's capabilities. Sign up to save your prompts and unlock AI-powered generation!",
         callToAction: "Create free account to add your API keys and generate personalized prompts"
       };
     }

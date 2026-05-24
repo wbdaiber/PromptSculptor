@@ -13,7 +13,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center mb-4">
-            Welcome to PromptSculptor! 🎨
+            Welcome to Markdown Prompt Creator! 🎨
           </DialogTitle>
         </DialogHeader>
 

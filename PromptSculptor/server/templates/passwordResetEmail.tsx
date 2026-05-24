@@ -25,13 +25,13 @@ export function PasswordResetEmail({
   return (
     <Html>
       <Head>
-        <title>Reset Your Password - PromptSculptor</title>
+        <title>Reset Your Password - Markdown Prompt Creator</title>
       </Head>
       <Body style={main}>
         <Container style={container}>
           {/* Header with logo */}
           <Section style={header}>
-            <Text style={logo}>🎨 PromptSculptor</Text>
+            <Text style={logo}>🎨 Markdown Prompt Creator</Text>
           </Section>
 
           {/* Main content */}
@@ -41,7 +41,7 @@ export function PasswordResetEmail({
             <Text style={paragraph}>{greeting}</Text>
             
             <Text style={paragraph}>
-              We received a request to reset your password for your PromptSculptor 
+              We received a request to reset your password for your Markdown Prompt Creator 
               account. Click the button below to create a new password:
             </Text>
 
@@ -76,12 +76,12 @@ export function PasswordResetEmail({
           <Hr style={hr} />
           <Section style={footer}>
             <Text style={footerText}>
-              This is an automated message from PromptSculptor.
+              This is an automated message from Markdown Prompt Creator.
               <br />
               Please do not reply to this email.
             </Text>
             <Text style={footerText}>
-              Need help? Contact our support team at support@promptsculptor.com
+              Need help? Contact our support team at support@markdownpromptcreator.com
             </Text>
           </Section>
         </Container>

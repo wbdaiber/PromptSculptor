@@ -134,7 +134,7 @@ export default function AdminLogin() {
 
         {/* Footer */}
         <div className="text-center text-xs text-slate-500 dark:text-slate-400">
-          PromptSculptor Admin Dashboard
+          Markdown Prompt Creator Admin Dashboard
         </div>
       </div>
     </div>

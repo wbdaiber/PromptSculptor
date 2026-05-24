@@ -21,7 +21,7 @@ async function simpleTest() {
   const appUrl = process.env.APP_URL;
 
   const hasResendKey = !!resendKey && resendKey !== 're_123456789_YOUR_RESEND_API_KEY_HERE';
-  const hasEmailFrom = !!emailFrom && emailFrom !== 'noreply@promptsculptor.com';
+  const hasEmailFrom = !!emailFrom && emailFrom !== 'noreply@markdownpromptcreator.com';
   const hasAppUrl = !!appUrl;
 
   console.log(`   RESEND_API_KEY: ${hasResendKey ? '✅ Real key configured' : '❌ Missing or placeholder'}`);

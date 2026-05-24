@@ -64,7 +64,7 @@ async function testEmailOnly() {
     const { data, error } = await resend.emails.send({
       from: EMAIL_FROM!,
       to: testEmail,
-      subject: 'Test Email - PromptSculptor Password Recovery',
+      subject: 'Test Email - Markdown Prompt Creator Password Recovery',
       html: generateTestHtml(),
       text: generateTestText(),
     });
@@ -88,7 +88,7 @@ async function testEmailOnly() {
     const { data, error } = await resend.emails.send({
       from: EMAIL_FROM!,
       to: testEmail,
-      subject: 'Password Reset Test - PromptSculptor',
+      subject: 'Password Reset Test - Markdown Prompt Creator',
       html: generatePasswordResetHtml({ userName: 'Test User', resetUrl, expiryMinutes: 30 }),
       text: generatePasswordResetText({ userName: 'Test User', resetUrl, expiryMinutes: 30 }),
     });
@@ -143,10 +143,10 @@ function generateTestHtml(): string {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">🎨 PromptSculptor</div>
+            <div class="logo">🎨 Markdown Prompt Creator</div>
           </div>
           <h1>Email Configuration Test</h1>
-          <p>This is a test email to verify that your PromptSculptor email configuration is working correctly.</p>
+          <p>This is a test email to verify that your Markdown Prompt Creator email configuration is working correctly.</p>
           <p>If you received this email, your Resend integration is properly configured!</p>
           <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
         </div>
@@ -157,16 +157,16 @@ function generateTestHtml(): string {
 
 function generateTestText(): string {
   return `
-Email Configuration Test - PromptSculptor
+Email Configuration Test - Markdown Prompt Creator
 
-This is a test email to verify that your PromptSculptor email configuration is working correctly.
+This is a test email to verify that your Markdown Prompt Creator email configuration is working correctly.
 
 If you received this email, your Resend integration is properly configured!
 
 Timestamp: ${new Date().toISOString()}
 
 ---
-This is an automated message from PromptSculptor.
+This is an automated message from Markdown Prompt Creator.
   `.trim();
 }
 
@@ -252,7 +252,7 @@ function generatePasswordResetHtml(params: {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">🎨 PromptSculptor</div>
+            <div class="logo">🎨 Markdown Prompt Creator</div>
           </div>
           
           <h1>Reset Your Password (TEST)</h1>
@@ -273,7 +273,7 @@ function generatePasswordResetHtml(params: {
           <p>Test URL: <span class="link">${resetUrl}</span></p>
           
           <div class="footer">
-            <p>This is a test email from PromptSculptor.<br>
+            <p>This is a test email from Markdown Prompt Creator.<br>
             Please do not reply to this email.</p>
           </div>
         </div>
@@ -303,7 +303,7 @@ ${resetUrl}
 This is a test email - the link above is not functional.
 
 ---
-This is a test email from PromptSculptor.
+This is a test email from Markdown Prompt Creator.
 Please do not reply to this email.
   `.trim();
 }
