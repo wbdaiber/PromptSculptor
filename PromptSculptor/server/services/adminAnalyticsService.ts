@@ -33,6 +33,7 @@ export class AdminAnalyticsService {
   private db: ReturnType<typeof drizzle>;
   private static pool: Pool | null = null;
   private queryExecutionTimes: Map<string, number[]> = new Map();
+  private queryStatsCache: Map<string, { sum: number; min: number; max: number; count: number }> = new Map();
 
   constructor() {
     if (!AdminAnalyticsService.pool) {
@@ -486,38 +487,57 @@ export class AdminAnalyticsService {
 
   /**
    * Get query execution time statistics for performance monitoring
+   * Returns cached statistics for high performance
    */
   getQueryExecutionStats() {
     const stats: Record<string, { avg: number; min: number; max: number; count: number }> = {};
     
-    Array.from(this.queryExecutionTimes.entries()).forEach(([query, times]) => {
-      if (times.length === 0) return;
+    for (const [query, cache] of this.queryStatsCache.entries()) {
+      if (cache.count === 0) continue;
       
       stats[query] = {
-        avg: Math.round(times.reduce((a: number, b: number) => a + b, 0) / times.length),
-        min: Math.min(...times),
-        max: Math.max(...times),
-        count: times.length
+        avg: Math.round(cache.sum / cache.count),
+        min: cache.min,
+        max: cache.max,
+        count: cache.count
       };
-    });
+    }
     
     return stats;
   }
 
   /**
-   * Record query execution time for monitoring
+   * Record query execution time for monitoring and update running statistics
    */
   private recordQueryTime(queryName: string, duration: number): void {
     if (!this.queryExecutionTimes.has(queryName)) {
       this.queryExecutionTimes.set(queryName, []);
+      this.queryStatsCache.set(queryName, { sum: 0, min: Infinity, max: -Infinity, count: 0 });
     }
     
     const times = this.queryExecutionTimes.get(queryName)!;
+    const cache = this.queryStatsCache.get(queryName)!;
+
+    // Add new duration
     times.push(duration);
+    cache.sum += duration;
+    cache.count++;
+
+    // Update min/max if necessary
+    if (duration < cache.min) cache.min = duration;
+    if (duration > cache.max) cache.max = duration;
     
     // Keep only last 100 execution times per query
     if (times.length > 100) {
-      times.shift();
+      const removed = times.shift()!;
+      cache.sum -= removed;
+      cache.count--;
+
+      // If we removed a min or max value, we must re-calculate them from current times
+      if (removed === cache.min || removed === cache.max) {
+        cache.min = Math.min(...times);
+        cache.max = Math.max(...times);
+      }
     }
     
     // Log slow queries
