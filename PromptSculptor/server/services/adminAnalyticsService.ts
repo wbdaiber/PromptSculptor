@@ -492,9 +492,9 @@ export class AdminAnalyticsService {
   getQueryExecutionStats() {
     const stats: Record<string, { avg: number; min: number; max: number; count: number }> = {};
     
-    for (const [query, cache] of this.queryStatsCache.entries()) {
+    for (const [query, cache] of Array.from(this.queryStatsCache.entries())) {
       if (cache.count === 0) continue;
-      
+
       stats[query] = {
         avg: Math.round(cache.sum / cache.count),
         min: cache.min,
