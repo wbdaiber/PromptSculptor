@@ -160,7 +160,7 @@ export default function Home() {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <i className="fas fa-magic text-white text-sm"></i>
                 </div>
-                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">PromptCraft</h1>
+                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Markdown Prompt Creator</h1>
               </div>
               <span className="text-sm text-slate-500 dark:text-slate-400 hidden tagline:block">
                 Transform natural language to structured LLM prompts
@@ -266,7 +266,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-slate-500">© 2025 PromptCraft. All rights reserved.</span>
+              <span className="text-sm text-slate-500">© 2026 Markdown Prompt Creator. All rights reserved.</span>
             </div>
             <div className="flex items-center space-x-6">
               <a href="/app/documentation" className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Documentation</a>

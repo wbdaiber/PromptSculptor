@@ -75,7 +75,7 @@ export class DemoModeService {
       return {
         isDemoMode: true,
         reason: 'unauthenticated',
-        message: "🎯 This is a demo prompt showcasing PromptSculptor's capabilities. Sign up to save your prompts and unlock AI-powered generation!",
+        message: "🎯 This is a demo prompt showcasing Markdown Prompt Creator's capabilities. Sign up to save your prompts and unlock AI-powered generation!",
         callToAction: "Create free account to add your API keys and generate personalized prompts"
       };
     }

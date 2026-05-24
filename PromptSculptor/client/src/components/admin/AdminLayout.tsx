@@ -134,7 +134,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               Admin Dashboard
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              PromptSculptor
+              Markdown Prompt Creator
             </p>
           </div>
         </div>

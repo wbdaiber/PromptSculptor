@@ -155,7 +155,7 @@ export default function Favorites() {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <i className="fas fa-magic text-white text-sm"></i>
                 </div>
-                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">PromptCraft</h1>
+                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Markdown Prompt Creator</h1>
               </div>
             </div>
             <div className="flex items-center space-x-4">

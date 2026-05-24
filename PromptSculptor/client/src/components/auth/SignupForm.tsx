@@ -99,7 +99,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <CardTitle>Create Account</CardTitle>
-        <CardDescription>Sign up to start using PromptSculptor with your own API keys</CardDescription>
+        <CardDescription>Sign up to start using Markdown Prompt Creator with your own API keys</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

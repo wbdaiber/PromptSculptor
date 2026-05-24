@@ -41,7 +41,7 @@ export default function Support() {
     {
       icon: MessageSquare,
       title: "Feature Support",
-      description: "Using PromptCraft's advanced features",
+      description: "Using Markdown Prompt Creator's advanced features",
       items: [
         "Template creation and management",
         "Recent and favorite prompts",
@@ -67,7 +67,7 @@ export default function Support() {
       icon: Mail,
       title: "Email Support",
       description: "Get help via email",
-      contact: "support@promptcraft.ai",
+      contact: "support@markdownpromptcreator.com",
       responseTime: "24-48 hours"
     },
     {
@@ -88,7 +88,7 @@ export default function Support() {
       icon: Shield,
       title: "Security Issues",
       description: "Report security concerns",
-      contact: "security@promptcraft.ai",
+      contact: "security@markdownpromptcreator.com",
       responseTime: "Immediate"
     }
   ];
@@ -122,7 +122,7 @@ export default function Support() {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <i className="fas fa-magic text-white text-sm"></i>
                 </div>
-                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">PromptCraft</h1>
+                <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Markdown Prompt Creator</h1>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -146,7 +146,7 @@ export default function Support() {
         <div className="text-center mb-12">
           <HelpCircle className="h-16 w-16 text-blue-600 mx-auto mb-4" />
           <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-            PromptCraft Support
+            Markdown Prompt Creator Support
           </h1>
           <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
             Get help with our AI-powered prompt transformation tool. Find answers, troubleshoot issues, and contact our support team.
@@ -251,10 +251,10 @@ export default function Support() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Badge variant="outline" className="border-orange-300 text-orange-700 dark:text-orange-300">
-                Service Outages: support@promptcraft.ai
+                Service Outages: support@markdownpromptcreator.com
               </Badge>
               <Badge variant="outline" className="border-orange-300 text-orange-700 dark:text-orange-300">
-                Security Issues: security@promptcraft.ai
+                Security Issues: security@markdownpromptcreator.com
               </Badge>
             </div>
           </div>
